@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=CulturApp
+Comment=Application de gestion de transport
+Exec=/home/florian/Documents/Projets/Algo/CulturApp/build/exe.linux-x86_64-3.13/CulturApp
+Icon=/home/florian/Documents/Projets/Algo/CulturApp/build/exe.linux-x86_64-3.13/src/assets/app_icon.ico
+Terminal=False
+Categories=Utility;
