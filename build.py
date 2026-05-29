@@ -11,14 +11,14 @@ build_exe_options = {
 
 setup(
     name="CulturApp",
-    version="2.2",
+    version="1.0",
     description="Application de gestion de contenus culturels",
     options={"build_exe": build_exe_options},
     executables=[
         Executable(
             script="main.py",
             base=None,
-            #icon="src/assets/app_icon.ico",
+            icon="src/assets/icon.png",
             target_name="CulturApp"
         )
     ]

@@ -1,4 +1,4 @@
 *.pyc
 /env
 /build
-/CulturApp.egg-info
+/src/CulturApp.egg-info

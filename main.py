@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = CulturApp()
-    #window.setWindowIcon(QIcon("src/assets/app_icon.ico"))
+    window.setWindowIcon(QIcon("src/assets/icon.png"))
     window.showMaximized()
     window.show()
     sys.exit(app.exec_())
