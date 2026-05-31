@@ -7,6 +7,7 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
 from src.view.home_tab import HomeWidget
 from src.view.film_tab import FilmWidget
 from src.utils import clear_layout
+from src.models.film import Film
 
 
 class CulturApp(QWidget) :
@@ -34,8 +35,6 @@ class CulturApp(QWidget) :
         self.stack.addWidget(self.menu_films)
         
         self.set_window()
-        # self.set_stat()
-        # self.set_main()
         self.define_layout()
         
         self.setLayout(self.layout)
@@ -54,11 +53,6 @@ class CulturApp(QWidget) :
             button.clicked.connect(lambda: self.stack.setCurrentWidget(getattr(self, f"menu_{menu.lower()}")))
             self.right_menu_layout.addWidget(button)
         
-        button = QPushButton("Add")
-        button.setStyleSheet("background-color: red;")
-        button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        button.clicked.connect(lambda: self.stack.setCurrentWidget(self.menu_films.update_count(10)))
-        self.right_menu_layout.addWidget(button)
     
     def define_layout(self) :
         self.stat_layout.addLayout(self.main_layout)
@@ -66,3 +60,4 @@ class CulturApp(QWidget) :
         self.window_layout.addLayout(self.stat_layout)
         
         self.layout.addLayout(self.window_layout)
+    
