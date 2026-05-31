@@ -1,3 +1,5 @@
+from enum import Enum
+
 def clear_layout(layout):
     while layout.count():
         item = layout.takeAt(0)
@@ -7,3 +9,7 @@ def clear_layout(layout):
 
         elif item.layout():
             clear_layout(item.layout())
+
+class MediaType(Enum):
+    FILM = "film"
+    SERIE = "serie"

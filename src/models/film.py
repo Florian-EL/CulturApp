@@ -2,5 +2,6 @@ from dataclasses import dataclass
 
 @dataclass
 class Film:
-    titre: str = ""
-    note: int = 0
+    id    : int = 0
+    titre : str = ""
+    note  : int = 0

@@ -9,19 +9,19 @@ from src.view.add_window import AddData
 class FilmWidget(QWidget):
     def __init__(self):
         super().__init__()
-
+        
         self.dm = FilmdataManager()
         self.films = self.dm.get_films()
         
         self.columns = ["Titre", "Note"]
-
+        
         layout = QVBoxLayout(self)
-
         self.table = QTableWidget()
         self.table.setColumnCount(2)
         self.table.setHorizontalHeaderLabels(self.columns)
-
         layout.addWidget(self.table)
+        
+        self.load_films()
         
         button = QPushButton("Add")
         button.setStyleSheet("background-color: green;")
@@ -30,14 +30,19 @@ class FilmWidget(QWidget):
         
         layout.addWidget(button)
         
-
+    def load_films(self):
+        for film in self.films:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            self.table.setItem(row, 0, QTableWidgetItem(film.titre))
+            self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
+    
     def add_film(self, film: Film):
-        self.films.append(film)
         self.dm.add_film(film)
-
+        
         row = self.table.rowCount()
         self.table.insertRow(row)
-
+        
         self.table.setItem(row, 0, QTableWidgetItem(film.titre))
         self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
     

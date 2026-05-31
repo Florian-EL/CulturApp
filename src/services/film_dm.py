@@ -1,12 +1,15 @@
 from src.models.film import Film
+from src.services.database_manager import DatabaseManager
+from src.utils import MediaType
 
 
 class FilmdataManager:
     def __init__(self):
-        self.data = []
+        self.db = DatabaseManager("./data")
     
     def add_film(self, film: Film):
-        self.data.append(film)
+        self.db.add_movie(film)
     
     def get_films(self):
-        return self.data
+        return self.db.get_all_movies()
+    
