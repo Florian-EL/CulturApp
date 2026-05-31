@@ -7,10 +7,10 @@ from src.view.add_window import AddData
 
 
 class FilmWidget(QWidget):
-    def __init__(self):
+    def __init__(self, data_folder):
         super().__init__()
         
-        self.dm = FilmdataManager()
+        self.dm = FilmdataManager(path=data_folder)
         self.films = self.dm.get_films()
         
         self.columns = ["Titre", "Note"]

@@ -6,14 +6,16 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
 
 from src.view.home_tab import HomeWidget
 from src.view.film_tab import FilmWidget
+from src.view.settings_dialog import SettingsDialog
 from src.utils import clear_layout
 from src.models.film import Film
 
 
 class CulturApp(QWidget) :
-    def __init__(self) :
+    def __init__(self, data_folder) :
         super().__init__()
         
+        self.data_folder = data_folder
         self.cultur_menu = ["Films"]#, "Serie_film", "Series", "Romans", "Manga", "Webtoon", "Wattpad", "Music"]
         
         self.init_ui()
@@ -29,7 +31,7 @@ class CulturApp(QWidget) :
         self.main_layout.addWidget(self.stack)
 
         self.home_widget = HomeWidget()
-        self.menu_films = FilmWidget()
+        self.menu_films = FilmWidget(self.data_folder)
 
         self.stack.addWidget(self.home_widget)
         self.stack.addWidget(self.menu_films)
@@ -53,6 +55,18 @@ class CulturApp(QWidget) :
             button.clicked.connect(lambda: self.stack.setCurrentWidget(getattr(self, f"menu_{menu.lower()}")))
             self.right_menu_layout.addWidget(button)
         
+        # Ajouter un bouton Paramètres
+        self.right_menu_layout.addStretch()
+        button_settings = QPushButton("Paramètres")
+        button_settings.setStyleSheet("background-color: blue;")
+        button_settings.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        button_settings.clicked.connect(self.open_settings)
+        self.right_menu_layout.addWidget(button_settings)
+    
+    def open_settings(self):
+        """Ouvre le dialogue des paramètres"""
+        settings_dialog = SettingsDialog(self)
+        settings_dialog.exec_()
     
     def define_layout(self) :
         self.stat_layout.addLayout(self.main_layout)
@@ -61,3 +75,4 @@ class CulturApp(QWidget) :
         
         self.layout.addLayout(self.window_layout)
     
+

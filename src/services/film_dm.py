@@ -4,8 +4,8 @@ from src.utils import MediaType
 
 
 class FilmdataManager:
-    def __init__(self):
-        self.db = DatabaseManager("./data")
+    def __init__(self, path):
+        self.db = DatabaseManager(path)
     
     def add_film(self, film: Film):
         self.db.add_movie(film)

@@ -71,15 +71,3 @@ class DatabaseManager:
             note     = row["note"]
             )
             for row in cursor.fetchall()]
-
-    def get_all(self, media_type: MediaType):
-        info = self.TABLE_MAPPING[media_type]
-        cursor = self.conn.cursor()
-        cursor.execute(
-            f"SELECT * FROM {info['table']}"
-        )
-        rows = cursor.fetchall()
-        return [
-            info["class"](**dict(row))
-            for row in rows
-        ]
