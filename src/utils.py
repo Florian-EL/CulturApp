@@ -12,4 +12,4 @@ def clear_layout(layout):
 
 class MediaType(Enum):
     FILM = "film"
-    SERIE = "serie"
+    SERIEFILM = "serie_film"

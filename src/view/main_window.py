@@ -6,6 +6,8 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
 
 from src.view.home_tab import HomeWidget
 from src.view.film_tab import FilmWidget
+from src.view.serie_film_tab import SerieFilmWidget
+from src.services.database_manager import DatabaseManager
 from src.view.settings_dialog import SettingsDialog
 from src.utils import clear_layout
 from src.models.film import Film
@@ -16,7 +18,7 @@ class CulturApp(QWidget) :
         super().__init__()
         
         self.data_folder = data_folder
-        self.cultur_menu = ["Films"]#, "Serie_film", "Series", "Romans", "Manga", "Webtoon", "Wattpad", "Music"]
+        self.cultur_menu = ["Films", "Serie_films"]#, "Series", "Romans", "Manga", "Webtoon", "Wattpad", "Music"]
         
         self.init_ui()
     
@@ -31,10 +33,17 @@ class CulturApp(QWidget) :
         self.main_layout.addWidget(self.stack)
 
         self.home_widget = HomeWidget()
-        self.menu_films = FilmWidget(self.data_folder)
+        self.db = DatabaseManager(self.data_folder)
+        
+        self.menu_films = FilmWidget(self.db)
+        self.menu_serie_films = SerieFilmWidget(self.db)
 
         self.stack.addWidget(self.home_widget)
         self.stack.addWidget(self.menu_films)
+        self.stack.addWidget(self.menu_serie_films)
+        
+        # Rafraîchir les données quand on change d'onglet
+        self.stack.currentChanged.connect(self.on_tab_changed)
         
         self.set_window()
         self.define_layout()
@@ -52,7 +61,7 @@ class CulturApp(QWidget) :
             button = QPushButton(menu)
             button.setStyleSheet("background-color: red;")
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            button.clicked.connect(lambda: self.stack.setCurrentWidget(getattr(self, f"menu_{menu.lower()}")))
+            button.clicked.connect(lambda checked=False, m=menu: self.stack.setCurrentWidget(getattr(self, f"menu_{m.lower()}")))
             self.right_menu_layout.addWidget(button)
         
         # Ajouter un bouton Paramètres
@@ -62,6 +71,14 @@ class CulturApp(QWidget) :
         button_settings.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         button_settings.clicked.connect(self.open_settings)
         self.right_menu_layout.addWidget(button_settings)
+    
+    def on_tab_changed(self, index):
+        """Rafraîchit l'onglet quand on change de page"""
+        widget = self.stack.currentWidget()
+        if hasattr(widget, 'refresh_films'):
+            widget.refresh_films()
+        elif hasattr(widget, 'refresh_serie_films'):
+            widget.refresh_serie_films()
     
     def open_settings(self):
         """Ouvre le dialogue des paramètres"""
