@@ -5,10 +5,15 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
 
 from src.view.home_tab import HomeWidget
+
 from src.view.film_tab import FilmWidget
 from src.view.serie_film_tab import SerieFilmWidget
 from src.view.serie_tab import SerieWidget
 from src.view.roman_tab import RomanWidget
+from src.view.manga_tab import MangaWidget
+from src.view.webtoon_tab import WebtoonWidget
+from src.view.wattpad_tab import WattpadWidget
+
 from src.services.database_manager import DatabaseManager
 from src.view.settings_dialog import SettingsDialog
 
@@ -18,7 +23,7 @@ class CulturApp(QWidget) :
         super().__init__()
         
         self.data_folder = data_folder
-        self.cultur_menu = ["Films", "Serie_films", "Series", "Romans"]#, "Manga", "Webtoon", "Wattpad", "Music"]
+        self.cultur_menu = ["Films", "Serie_films", "Series", "Romans", "Mangas", "Webtoons", "Wattpads"]
         
         self.init_ui()
     
@@ -39,12 +44,18 @@ class CulturApp(QWidget) :
         self.menu_serie_films = SerieFilmWidget(self.db)
         self.menu_series = SerieWidget(self.db)
         self.menu_romans = RomanWidget(self.db)
+        self.menu_mangas = MangaWidget(self.db)
+        self.menu_webtoons = WebtoonWidget(self.db)
+        self.menu_wattpads = WattpadWidget(self.db)
 
         self.stack.addWidget(self.home_widget)
         self.stack.addWidget(self.menu_films)
         self.stack.addWidget(self.menu_serie_films)
         self.stack.addWidget(self.menu_series)
         self.stack.addWidget(self.menu_romans)
+        self.stack.addWidget(self.menu_mangas)
+        self.stack.addWidget(self.menu_webtoons)
+        self.stack.addWidget(self.menu_wattpads)
         
         # Rafraîchir les données quand on change d'onglet
         self.stack.currentChanged.connect(self.on_tab_changed)

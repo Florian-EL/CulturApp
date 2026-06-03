@@ -7,6 +7,10 @@ from src.models.film import Film
 from src.models.serie_film import SerieFilm
 from src.models.serie import Serie
 from src.models.roman import Roman
+from src.models.manga import Manga
+from src.models.webtoon import Webtoon
+from src.models.wattpad import Wattpad
+
 from src.utils import MediaType
 
 
@@ -37,6 +41,18 @@ class DatabaseManager:
                 "table": "roman",
                 "class": Roman
             },
+            MediaType.MANGA: {
+                "table": "manga",
+                "class": Manga
+            },
+            MediaType.WEBTOON: {
+                "table": "webtoon",
+                "class": Webtoon
+            },
+            MediaType.WATTPAD: {
+                "table": "wattpad",
+                "class": Wattpad
+            },
         }
         self.TYPE_MAP = {
             int: "INTEGER",
@@ -58,7 +74,10 @@ class DatabaseManager:
         for f in fields(model_cls):
             py_type = f.type
             sql_type = self.TYPE_MAP.get(py_type, "TEXT")
-            columns[f.name] = sql_type
+            if f.name == "id":
+                columns[f.name] = "INTEGER PRIMARY KEY AUTOINCREMENT"
+            else:
+                columns[f.name] = sql_type
             
         create_sql = ", ".join(
             f"{name} {sql_type}"
@@ -86,9 +105,8 @@ class DatabaseManager:
         
         data = asdict(obj)
         
-        if data.get("id") is None:
-            data.pop("id", None)
-            
+        data.pop("id", None)
+        
         return data
     
     def row_to_model(self, model_cls, row):

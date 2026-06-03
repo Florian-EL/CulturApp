@@ -15,3 +15,6 @@ class MediaType(Enum):
     SERIEFILM = "serie_film"
     SERIE = "serie"
     ROMAN = "roman"
+    MANGA = "manga"
+    WEBTOON = "webtoon"
+    WATTPAD = "wattpad"

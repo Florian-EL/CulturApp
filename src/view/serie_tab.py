@@ -41,20 +41,20 @@ class SerieWidget(QWidget):
         self.load()
     
     def load(self):
-        for film in self.data:
+        for data in self.data:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(film.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
+            self.table.setItem(row, 0, QTableWidgetItem(data.titre))
+            self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
     
-    def add(self, serie: Serie):
-        self.db.add("serie", serie)
+    def add(self, data: Serie):
+        self.db.add("serie", data)
         
         row = self.table.rowCount()
         self.table.insertRow(row)
         
-        self.table.setItem(row, 0, QTableWidgetItem(serie.titre))
-        self.table.setItem(row, 1, QTableWidgetItem(str(serie.note)))
+        self.table.setItem(row, 0, QTableWidgetItem(data.titre))
+        self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
     
     def open_add_window(self) :
         add_window = AddData(self.columns)

@@ -65,4 +65,4 @@ class RomanWidget(QWidget):
         for col in self.columns :
             setattr(data, col.lower(), new_data.get(col))
         
-        self.add_serie_film(data)
+        self.add(data)

@@ -1,16 +1,16 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
-from src.models.serie_film import SerieFilm
+from src.models.wattpad import Wattpad
 
 
 from src.view.add_window import AddData
 
 
-class SerieFilmWidget(QWidget):
+class WattpadWidget(QWidget):
     def __init__(self, db):
         super().__init__()
         
         self.db = db
-        self.data = self.db.get("serie_film", SerieFilm)
+        self.data = self.db.get("wattpad", Wattpad)
         
         self.columns = ["Titre", "Note"]
         
@@ -36,7 +36,7 @@ class SerieFilmWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get("serie_film", SerieFilm)
+        self.data = self.db.get("wattpad", Wattpad)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
@@ -47,8 +47,8 @@ class SerieFilmWidget(QWidget):
             self.table.setItem(row, 0, QTableWidgetItem(data.titre))
             self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
     
-    def add(self, data: SerieFilm):
-        self.db.add("serie_film", data)
+    def add(self, data: Wattpad):
+        self.db.add("wattpad", data)
         
         row = self.table.rowCount()
         self.table.insertRow(row)
@@ -61,7 +61,7 @@ class SerieFilmWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = SerieFilm()
+        data = Wattpad()
         for col in self.columns :
             setattr(data, col.lower(), new_data.get(col))
         

@@ -65,4 +65,4 @@ class FilmWidget(QWidget):
         for col in self.columns :
             setattr(data, col.lower(), new_data.get(col))
         
-        self.add_film(data)
+        self.add(data)
