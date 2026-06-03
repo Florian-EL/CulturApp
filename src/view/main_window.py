@@ -7,6 +7,7 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
 from src.view.home_tab import HomeWidget
 from src.view.film_tab import FilmWidget
 from src.view.serie_film_tab import SerieFilmWidget
+from src.view.roman_tab import RomanWidget
 from src.services.database_manager import DatabaseManager
 from src.view.settings_dialog import SettingsDialog
 from src.utils import clear_layout
@@ -18,7 +19,7 @@ class CulturApp(QWidget) :
         super().__init__()
         
         self.data_folder = data_folder
-        self.cultur_menu = ["Films", "Serie_films"]#, "Series", "Romans", "Manga", "Webtoon", "Wattpad", "Music"]
+        self.cultur_menu = ["Films", "Serie_films", "Romans"]#, "Series", "Romans", "Manga", "Webtoon", "Wattpad", "Music"]
         
         self.init_ui()
     
@@ -37,10 +38,12 @@ class CulturApp(QWidget) :
         
         self.menu_films = FilmWidget(self.db)
         self.menu_serie_films = SerieFilmWidget(self.db)
+        self.menu_romans = RomanWidget(self.db)
 
         self.stack.addWidget(self.home_widget)
         self.stack.addWidget(self.menu_films)
         self.stack.addWidget(self.menu_serie_films)
+        self.stack.addWidget(self.menu_romans)
         
         # Rafraîchir les données quand on change d'onglet
         self.stack.currentChanged.connect(self.on_tab_changed)

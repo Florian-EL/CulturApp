@@ -1,16 +1,16 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
-from src.models.film import Film
+from src.models.roman import Roman
 
 
 from src.view.add_window import AddData
 
 
-class FilmWidget(QWidget):
+class RomanWidget(QWidget):
     def __init__(self, db):
         super().__init__()
         
         self.db = db
-        self.films = self.db.get("film", Film)
+        self.roman = self.db.get("roman", Roman)
         
         self.columns = ["Titre", "Note"]
         
@@ -20,7 +20,7 @@ class FilmWidget(QWidget):
         self.table.setHorizontalHeaderLabels(self.columns)
         layout.addWidget(self.table)
         
-        self.load_films()
+        self.load_roman()
         
         button = QPushButton("Add")
         button.setStyleSheet("background-color: green;")
@@ -32,37 +32,37 @@ class FilmWidget(QWidget):
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""
         super().showEvent(event)
-        self.refresh_films()
+        self.refresh_roman()
         
-    def refresh_films(self):
+    def refresh_roman(self):
         """Rafraîchit les données depuis la base de données"""
-        self.films = self.db.get("film", Film)
+        self.roman = self.db.get("roman", Roman)
         self.table.setRowCount(0)  # Vide le tableau
-        self.load_films()
+        self.load_roman()
     
-    def load_films(self):
-        for film in self.films:
+    def load_roman(self):
+        for roman in self.roman:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(film.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
+            self.table.setItem(row, 0, QTableWidgetItem(roman.titre))
+            self.table.setItem(row, 1, QTableWidgetItem(str(roman.note)))
     
-    def add_film(self, film: Film):
-        self.db.add("film", film)
+    def add_serie_film(self, roman: Roman):
+        self.db.add("roman", roman)
         
         row = self.table.rowCount()
         self.table.insertRow(row)
         
-        self.table.setItem(row, 0, QTableWidgetItem(film.titre))
-        self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
+        self.table.setItem(row, 0, QTableWidgetItem(roman.titre))
+        self.table.setItem(row, 1, QTableWidgetItem(str(roman.note)))
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
         add_window.exec_()
         data = add_window.get_data()
         
-        films = Film()
+        roman = Roman()
         for col in self.columns :
-            setattr(films, col.lower(), data.get(col))
+            setattr(roman, col.lower(), data.get(col))
         
-        self.add_film(films)
+        self.add_serie_film(roman)

@@ -10,7 +10,7 @@ class SerieFilmWidget(QWidget):
         super().__init__()
         
         self.db = db
-        self.serie_films = self.db.get_serie_films()
+        self.serie_films = self.db.get("serie_film", SerieFilm)
         
         self.columns = ["Titre", "Note"]
         
@@ -36,7 +36,7 @@ class SerieFilmWidget(QWidget):
         
     def refresh_serie_films(self):
         """Rafraîchit les données depuis la base de données"""
-        self.serie_films = self.db.get_serie_films()
+        self.serie_films = self.db.get("serie_film", SerieFilm)
         self.table.setRowCount(0)  # Vide le tableau
         self.load_serie_films()
     
@@ -48,7 +48,7 @@ class SerieFilmWidget(QWidget):
             self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
     
     def add_serie_film(self, film: SerieFilm):
-        self.db.add_serie_film(film)
+        self.db.add("serie_film", film)
         
         row = self.table.rowCount()
         self.table.insertRow(row)

@@ -1,8 +1,11 @@
 from pathlib import Path
 import sqlite3
 
+from dataclasses import asdict, fields, is_dataclass
+
 from src.models.film import Film
 from src.models.serie_film import SerieFilm
+from src.models.roman import Roman
 from src.utils import MediaType
 
 
@@ -25,97 +28,87 @@ class DatabaseManager:
                 "table": "serie_film",
                 "class": SerieFilm
             },
+            MediaType.ROMAN: {
+                "table": "roman",
+                "class": Roman
+            },
+        }
+        self.TYPE_MAP = {
+            int: "INTEGER",
+            str: "TEXT",
+            float: "REAL",
+            bool: "INTEGER",
         }
         
-        self.create_tables()
+        for config in self.TABLE_MAPPING.values():
+            self.sync_table(config["table"], config["class"])
     
     def close(self):
         self.conn.close()
     
-    def create_tables(self):
+    def sync_table(self, table_name, model_cls):
         cursor = self.conn.cursor()
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS film(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titre TEXT NOT NULL,
-            note INTEGER
-        )
-        """)
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS serie_film(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titre TEXT NOT NULL,
-            note INTEGER
-        )
-        """)
+        columns = {}
         
+        for f in fields(model_cls):
+            py_type = f.type
+            sql_type = self.TYPE_MAP.get(py_type, "TEXT")
+            columns[f.name] = sql_type
+            
+        create_sql = ", ".join(
+            f"{name} {sql_type}"
+            for name, sql_type in columns.items()
+        )
+        
+        cursor.execute(
+            f"CREATE TABLE IF NOT EXISTS {table_name} ({create_sql})"
+        )
+        
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        existing = {row[1] for row in cursor.fetchall()}
+        
+        for col_name, col_type in columns.items():
+            if col_name not in existing:
+                cursor.execute(
+                    f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"
+                )
+                
         self.conn.commit()
     
-    def add_film(self, movie: Film):
+    def model_to_row(self, obj):
+        if not is_dataclass(obj):
+            raise ValueError("Object must be a dataclass")
+        
+        data = asdict(obj)
+        
+        if data.get("id") is None:
+            data.pop("id", None)
+            
+        return data
+    
+    def row_to_model(self, model_cls, row):
+        return model_cls(**row)
+    
+    def add(self, table: str, obj):
         cursor = self.conn.cursor()
         
-        cursor.execute("""
-        INSERT INTO film(
-            titre,
-            note
-        )
-        VALUES (?, ?)
-        """,
-        (
-            movie.titre,
-            movie.note
-        ))
+        data = self.model_to_row(obj)
         
+        columns = ", ".join(data.keys())
+        placeholders = ", ".join(["?"] * len(data))
+        
+        sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+        
+        cursor.execute(sql, tuple(data.values()))
         self.conn.commit()
         
-        movie.id = cursor.lastrowid
+        obj.id = cursor.lastrowid
     
-    def get_films(self) -> list[Film]:
-        cursor = self.conn.cursor()
-        cursor.execute("""
-        SELECT *
-        FROM film
-        ORDER BY titre
-        """)
-        films = [Film(
-            id       = row["id"],
-            titre    = row["titre"],
-            note     = row["note"]
-            )
-            for row in cursor.fetchall()]
-        return films
-
-    def add_serie_film(self, movie: SerieFilm):
+    def get(self, table: str, model_cls):
         cursor = self.conn.cursor()
         
+        cursor.execute(f"SELECT * FROM {table} ORDER BY titre")
+        rows = cursor.fetchall()
         
-        cursor.execute("""
-        INSERT INTO serie_film(
-            titre,
-            note
-        )
-        VALUES (?, ?)
-        """,
-        (
-            movie.titre,
-            movie.note
-        ))
+        return [self.row_to_model(model_cls, dict(row)) for row in rows]
         
-        self.conn.commit()
-        
-        movie.id = cursor.lastrowid
-    
-    def get_serie_films(self) -> list[SerieFilm]:
-        cursor = self.conn.cursor()
-        cursor.execute("""
-        SELECT *
-        FROM serie_film
-        ORDER BY titre
-        """)
-        serie_films = [SerieFilm(
-            id       = row["id"],
-            titre    = row["titre"],
-            note     = row["note"]
-            )
-            for row in cursor.fetchall()]
-        return serie_films
