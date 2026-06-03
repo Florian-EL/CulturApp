@@ -127,6 +127,13 @@ class DatabaseManager:
         
         obj.id = cursor.lastrowid
     
+    def delete(self, table: str, obj):
+        cursor = self.conn.cursor()
+        
+        sql = f"DELETE FROM {table} WHERE id = ?"
+        cursor.execute(sql, (obj.id,))
+        self.conn.commit()
+    
     def get(self, table: str, model_cls):
         cursor = self.conn.cursor()
         

@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
 from src.models.wattpad import Wattpad
 
 
 from src.view.add_window import AddData
+from src.view.del_window import DelData
 
 
 class WattpadWidget(QWidget):
@@ -22,12 +23,22 @@ class WattpadWidget(QWidget):
         
         self.load()
         
-        button = QPushButton("Add")
-        button.setStyleSheet("background-color: green;")
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        button.clicked.connect(self.open_add_window)
+        buttons_layout = QHBoxLayout()
         
-        layout.addWidget(button)
+        add_button = QPushButton("Add")
+        add_button.setStyleSheet("background-color: green;")
+        add_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        add_button.clicked.connect(self.open_add_window)
+        
+        del_button = QPushButton("Del")
+        del_button.setStyleSheet("background-color: red;")
+        del_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        del_button.clicked.connect(self.open_del_window)
+        
+        buttons_layout.addWidget(add_button)
+        buttons_layout.addWidget(del_button)
+        
+        layout.addLayout(buttons_layout)
     
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""
@@ -66,3 +77,12 @@ class WattpadWidget(QWidget):
             setattr(data, col.lower(), new_data.get(col))
         
         self.add(data)
+    
+    def open_del_window(self) :
+        del_window = DelData()
+        del_window.exec_()
+        data = del_window.get_data()
+        
+        self.db.delete("wattpad", Wattpad(id=int(data)))
+        
+        self.refresh()

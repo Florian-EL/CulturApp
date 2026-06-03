@@ -1,7 +1,5 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton
 
-from src.models.film import Film
-
 class AddData(QDialog) :
     def __init__(self, columns, parent=None):
         super().__init__(parent)
