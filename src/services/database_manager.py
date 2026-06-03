@@ -5,6 +5,7 @@ from dataclasses import asdict, fields, is_dataclass
 
 from src.models.film import Film
 from src.models.serie_film import SerieFilm
+from src.models.serie import Serie
 from src.models.roman import Roman
 from src.utils import MediaType
 
@@ -27,6 +28,10 @@ class DatabaseManager:
             MediaType.SERIEFILM: {
                 "table": "serie_film",
                 "class": SerieFilm
+            },
+            MediaType.SERIE: {
+                "table": "serie",
+                "class": Serie
             },
             MediaType.ROMAN: {
                 "table": "roman",

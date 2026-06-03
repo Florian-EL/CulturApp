@@ -10,7 +10,7 @@ class SerieFilmWidget(QWidget):
         super().__init__()
         
         self.db = db
-        self.serie_films = self.db.get("serie_film", SerieFilm)
+        self.data = self.db.get("serie_film", SerieFilm)
         
         self.columns = ["Titre", "Note"]
         
@@ -20,7 +20,7 @@ class SerieFilmWidget(QWidget):
         self.table.setHorizontalHeaderLabels(self.columns)
         layout.addWidget(self.table)
         
-        self.load_serie_films()
+        self.load()
         
         button = QPushButton("Add")
         button.setStyleSheet("background-color: green;")
@@ -32,37 +32,37 @@ class SerieFilmWidget(QWidget):
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""
         super().showEvent(event)
-        self.refresh_serie_films()
+        self.refresh()
         
-    def refresh_serie_films(self):
+    def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.serie_films = self.db.get("serie_film", SerieFilm)
+        self.data = self.db.get("serie_film", SerieFilm)
         self.table.setRowCount(0)  # Vide le tableau
-        self.load_serie_films()
+        self.load()
     
-    def load_serie_films(self):
-        for film in self.serie_films:
+    def load(self):
+        for data in self.data:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(film.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
+            self.table.setItem(row, 0, QTableWidgetItem(data.titre))
+            self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
     
-    def add_serie_film(self, film: SerieFilm):
-        self.db.add("serie_film", film)
+    def add(self, data: SerieFilm):
+        self.db.add("serie_film", data)
         
         row = self.table.rowCount()
         self.table.insertRow(row)
         
-        self.table.setItem(row, 0, QTableWidgetItem(film.titre))
-        self.table.setItem(row, 1, QTableWidgetItem(str(film.note)))
+        self.table.setItem(row, 0, QTableWidgetItem(data.titre))
+        self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
         add_window.exec_()
         data = add_window.get_data()
         
-        films = SerieFilm()
+        data = SerieFilm()
         for col in self.columns :
-            setattr(films, col.lower(), data.get(col))
+            setattr(data, col.lower(), new_data.get(col))
         
-        self.add_serie_film(films)
+        self.add(data)
