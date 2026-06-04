@@ -1,17 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
-from src.models.serie_film import SerieFilm
+from src.models.roman import Roman
 
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 
 
-class SerieFilmWidget(QWidget):
+class RomanWidget(QWidget):
     def __init__(self, db):
         super().__init__()
         
         self.db = db
-        self.data = self.db.get("serie_film", SerieFilm)
+        self.data = self.db.get("roman", Roman)
         
         self.columns = ["Titre", "Note"]
         
@@ -47,32 +47,30 @@ class SerieFilmWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get("serie_film", SerieFilm)
+        self.data = self.db.get("roman", Roman)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def load(self):
-        for data in self.data:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
-    
-    def add(self, data: SerieFilm):
-        self.db.add("serie_film", data)
-        
+    def set_data(self, data) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        
         self.table.setItem(row, 0, QTableWidgetItem(data.titre))
         self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
+    
+    def load(self):
+        for data in self.data:
+            self.set_data(data)
+    
+    def add(self, data: Roman):
+        self.db.add("roman", data)
+        self.set_data(data)
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = SerieFilm()
+        data = Roman()
         for col in self.columns :
             setattr(data, col.lower(), new_data.get(col))
         
@@ -83,6 +81,6 @@ class SerieFilmWidget(QWidget):
         del_window.exec_()
         data = del_window.get_data()
         
-        self.db.delete("serie_film", SerieFilm(id=int(data)))
+        self.db.delete("roman", Roman(id=int(data)))
         
         self.refresh()

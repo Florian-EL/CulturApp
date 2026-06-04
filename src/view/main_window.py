@@ -6,13 +6,13 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
 
 from src.view.home_tab import HomeWidget
 
-from src.view.film_tab import FilmWidget
-from src.view.serie_film_tab import SerieFilmWidget
-from src.view.serie_tab import SerieWidget
-from src.view.roman_tab import RomanWidget
-from src.view.manga_tab import MangaWidget
-from src.view.webtoon_tab import WebtoonWidget
-from src.view.wattpad_tab import WattpadWidget
+from src.view.type_tab.film_tab import FilmWidget
+from src.view.type_tab.serie_film_tab import SerieFilmWidget
+from src.view.type_tab.serie_tab import SerieWidget
+from src.view.type_tab.roman_tab import RomanWidget
+from src.view.type_tab.manga_tab import MangaWidget
+from src.view.type_tab.webtoon_tab import WebtoonWidget
+from src.view.type_tab.wattpad_tab import WattpadWidget
 
 from src.services.database_manager import DatabaseManager
 from src.view.settings_dialog import SettingsDialog

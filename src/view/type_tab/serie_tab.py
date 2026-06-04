@@ -1,17 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
-from src.models.roman import Roman
+from src.models.serie import Serie
 
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 
 
-class RomanWidget(QWidget):
+class SerieWidget(QWidget):
     def __init__(self, db):
         super().__init__()
         
         self.db = db
-        self.data = self.db.get("roman", Roman)
+        self.data = self.db.get("serie", Serie)
         
         self.columns = ["Titre", "Note"]
         
@@ -47,32 +47,30 @@ class RomanWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get("roman", Roman)
+        self.data = self.db.get("serie", Serie)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def load(self):
-        for data in self.data:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
-    
-    def add(self, data: Roman):
-        self.db.add("roman", data)
-        
+    def set_data(self, data) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        
         self.table.setItem(row, 0, QTableWidgetItem(data.titre))
         self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
+    
+    def load(self):
+        for data in self.data:
+            self.set_data(data)
+    
+    def add(self, data: Serie):
+        self.db.add("serie", data)
+        self.set_data(data)
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = Roman()
+        data = Serie()
         for col in self.columns :
             setattr(data, col.lower(), new_data.get(col))
         
@@ -83,6 +81,6 @@ class RomanWidget(QWidget):
         del_window.exec_()
         data = del_window.get_data()
         
-        self.db.delete("roman", Roman(id=int(data)))
+        self.db.delete("serie", Serie(id=int(data)))
         
         self.refresh()

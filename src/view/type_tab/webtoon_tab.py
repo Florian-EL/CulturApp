@@ -1,17 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
-from src.models.manga import Manga
+from src.models.webtoon import Webtoon
 
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 
 
-class MangaWidget(QWidget):
+class WebtoonWidget(QWidget):
     def __init__(self, db):
         super().__init__()
         
         self.db = db
-        self.data = self.db.get("manga", Manga)
+        self.data = self.db.get("webtoon", Webtoon)
         
         self.columns = ["Titre", "Note"]
         
@@ -47,32 +47,30 @@ class MangaWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get("manga", Manga)
+        self.data = self.db.get("webtoon", Webtoon)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def load(self):
-        for data in self.data:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
-    
-    def add(self, data: Manga):
-        self.db.add("manga", data)
-        
+    def set_data(self, data) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        
         self.table.setItem(row, 0, QTableWidgetItem(data.titre))
         self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
+    
+    def load(self):
+        for data in self.data:
+            self.set_data(data)
+    
+    def add(self, data: Webtoon):
+        self.db.add("webtoon", data)
+        self.set_data(data)
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = Manga()
+        data = Webtoon()
         for col in self.columns :
             setattr(data, col.lower(), new_data.get(col))
         
@@ -83,6 +81,6 @@ class MangaWidget(QWidget):
         del_window.exec_()
         data = del_window.get_data()
         
-        self.db.delete("manga", Manga(id=int(data)))
+        self.db.delete("webtoon", Webtoon(id=int(data)))
         
         self.refresh()

@@ -1,17 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
-from src.models.serie import Serie
+from src.models.wattpad import Wattpad
 
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 
 
-class SerieWidget(QWidget):
+class WattpadWidget(QWidget):
     def __init__(self, db):
         super().__init__()
         
         self.db = db
-        self.data = self.db.get("serie", Serie)
+        self.data = self.db.get("wattpad", Wattpad)
         
         self.columns = ["Titre", "Note"]
         
@@ -47,32 +47,30 @@ class SerieWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get("serie", Serie)
+        self.data = self.db.get("wattpad", Wattpad)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def load(self):
-        for data in self.data:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
-    
-    def add(self, data: Serie):
-        self.db.add("serie", data)
-        
+    def set_data(self, data) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        
         self.table.setItem(row, 0, QTableWidgetItem(data.titre))
         self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
+    
+    def load(self):
+        for data in self.data:
+            self.set_data(data)
+    
+    def add(self, data: Wattpad):
+        self.db.add("wattpad", data)
+        self.set_data(data)
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = Serie()
+        data = Wattpad()
         for col in self.columns :
             setattr(data, col.lower(), new_data.get(col))
         
@@ -83,6 +81,6 @@ class SerieWidget(QWidget):
         del_window.exec_()
         data = del_window.get_data()
         
-        self.db.delete("serie", Serie(id=int(data)))
+        self.db.delete("wattpad", Wattpad(id=int(data)))
         
         self.refresh()

@@ -11,13 +11,15 @@ class FilmWidget(QWidget):
         super().__init__()
         
         self.db = db
-        self.data = self.db.get("film", Film)
+        self.type_tab = "film"
+        self.data = self.db.get(self.type_tab, Film)
         
-        self.columns = ["Titre", "Note"]
+        self.columns = ["Titre", "Type", "Genre", "VO", "Cinema", 
+                        "Updated", "Etat", "Annee_vu", "Nb_vu", "Note"]
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
-        self.table.setColumnCount(2)
+        self.table.setColumnCount(len(self.columns))
         self.table.setHorizontalHeaderLabels(self.columns)
         layout.addWidget(self.table)
         
@@ -47,25 +49,31 @@ class FilmWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get("film", Film)
+        self.data = self.db.get(self.type_tab, Film)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def load(self):
-        for data in self.data:
-            row = self.table.rowCount()
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-            self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
-    
-    def add(self, data: Film):
-        self.db.add("film", data)
-        
+    def set_data(self, data : Film) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        
         self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-        self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
+        self.table.setItem(row, 1, QTableWidgetItem(data.type))
+        self.table.setItem(row, 2, QTableWidgetItem(data.genre))
+        self.table.setItem(row, 3, QTableWidgetItem(data.vo))
+        self.table.setItem(row, 4, QTableWidgetItem(data.cinema))
+        self.table.setItem(row, 5, QTableWidgetItem(data.updated))
+        self.table.setItem(row, 6, QTableWidgetItem(data.etat))
+        self.table.setItem(row, 7, QTableWidgetItem(data.annee_vu))
+        self.table.setItem(row, 8, QTableWidgetItem(data.nb_vu))
+        self.table.setItem(row, 9, QTableWidgetItem(str(data.note)))
+    
+    def load(self):
+        for data in self.data:
+            self.set_data(data)
+    
+    def add(self, data):
+        self.db.add(self.type_tab, data)
+        self.set_data(data)
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
@@ -83,6 +91,6 @@ class FilmWidget(QWidget):
         del_window.exec_()
         data = del_window.get_data()
         
-        self.db.delete("film", Film(id=int(data)))
+        self.db.delete(self.type_tab, Film(id=int(data)))
         
         self.refresh()
