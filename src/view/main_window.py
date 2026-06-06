@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QScrollArea, QWidget, \
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMenuBar, QLabel, QScrollArea, QWidget, \
     QGraphicsView, QGraphicsScene, QTableView, QTableWidget, QHeaderView, QTableWidgetItem, QSizePolicy, \
-    QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget
+    QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QFileDialog, QAction
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
+
+from pandas import read_csv
 
 from src.view.home_tab import HomeWidget
 
@@ -47,6 +48,14 @@ class CulturApp(QWidget) :
         self.menu_mangas = MangaWidget(self.db)
         self.menu_webtoons = WebtoonWidget(self.db)
         self.menu_wattpads = WattpadWidget(self.db)
+        
+        menu_bar = QMenuBar()
+        self.layout.setMenuBar(menu_bar)
+        self.menu_widget = menu_bar.addMenu("File")        
+        self.create_import_menu()
+        
+        
+        #self.stack.addWidget(self.menu_widget)
 
         self.stack.addWidget(self.home_widget)
         self.stack.addWidget(self.menu_films)
@@ -105,3 +114,16 @@ class CulturApp(QWidget) :
         self.layout.addLayout(self.window_layout)
     
 
+    def create_import_menu(self):
+        action_csv = QAction("Importer CSV", self)
+        action_csv.triggered.connect(self.import_csv)
+        self.menu_widget.addAction(action_csv)
+        
+
+    def import_csv(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,"Importer un fichier CSV","","CSV (*.csv)")
+        if file_path != "" :
+            widget = self.stack.currentWidget()
+            df = read_csv(file_path, delimiter=";")
+            widget.add_import(df)

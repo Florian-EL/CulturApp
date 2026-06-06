@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, \
+                            QTableWidgetItem, QPushButton, QSizePolicy, QDialog, QLabel, QMessageBox
+import pandas as pd
+
 from src.models.serie import Serie
-
-
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 
@@ -21,6 +22,8 @@ class SerieWidget(QWidget):
                         "S5_vu", "S5_tot", "S6_vu", "S6_tot",
                         "S7_vu", "S7_tot", "S8_vu", "S8_tot"]
         #Nombre épisodes à voir Nombre épisodes total
+        
+        
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -67,7 +70,7 @@ class SerieWidget(QWidget):
                 if getattr(data, col.lower(), 0) != "":
                     nb_saison += 1
                     data.nb_ep_total += int(getattr(data, col.lower(), 0))
-            if col.endswith("_vu"):
+            if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
                 if getattr(data, col.lower(), 0) != "":
                     data.nb_ep_vu += int(getattr(data, col.lower(), 0))
         
@@ -75,6 +78,67 @@ class SerieWidget(QWidget):
         data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
         
         return data
+    
+    def add_import(self, df: pd.DataFrame) :
+        df_columns = set(df.columns)
+        required_columns = set([col.lower() for col in self.columns])
+        
+        if not required_columns.issubset(df_columns):
+            missing = required_columns - df_columns
+            QMessageBox.warning(self, "Erreur", f"Colonnes manquantes : {missing}")
+            return
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Importer des données")
+        dialog.setGeometry(100, 100, 400, 150)
+        
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel(f"Importer {len(df)} série(s).\nVoulez-vous remplacer toutes les données existantes ?"))
+        
+        buttons_layout = QHBoxLayout()
+        
+        replace_button = QPushButton("Remplacer")
+        replace_button.setStyleSheet("background-color: orange;")
+        replace_button.clicked.connect(lambda: self.import_and_replace(df, dialog))
+        
+        add_button = QPushButton("Ajouter")
+        add_button.setStyleSheet("background-color: green;")
+        add_button.clicked.connect(lambda: self._import_add(df, dialog))
+        
+        cancel_button = QPushButton("Annuler")
+        cancel_button.setStyleSheet("background-color: gray;")
+        cancel_button.clicked.connect(dialog.reject)
+        
+        buttons_layout.addWidget(replace_button)
+        buttons_layout.addWidget(add_button)
+        buttons_layout.addWidget(cancel_button)
+        
+        layout.addLayout(buttons_layout)
+        dialog.exec_()
+    
+    def import_and_replace(self, df: pd.DataFrame, dialog: QDialog):
+        for data in self.data:
+            self.db.delete("serie", Serie(id=data.id))
+        
+        self._import_add(df, dialog)
+    
+    def _import_add(self, df: pd.DataFrame, dialog: QDialog):
+        for _, row in df.iterrows():
+            data = Serie()
+            for col in self.columns:
+                col_lower = col.lower()
+                if col_lower in df.columns:
+                    value = row[col_lower]
+                    if pd.isna(value):
+                        value = ""
+                    setattr(data, col_lower, value)
+            
+            data = self.calculate(data)
+            self.db.add("serie", data)
+        
+        self.refresh()
+        dialog.accept()
+        QMessageBox.information(self, "Succès", f"{len(df)} série(s) importée(s) avec succès !")
     
     def set_data(self, data : Serie) :
         row = self.table.rowCount()
