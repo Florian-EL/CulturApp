@@ -51,11 +51,11 @@ class MangaWidget(QWidget):
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def set_data(self, data) :
+    def set_data(self, data : Manga) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-        self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
+        for i, col in enumerate(self.columns) :
+            self.table.setItem(row, i, QTableWidgetItem(getattr(data, col.lower())))
     
     def load(self):
         for data in self.data:

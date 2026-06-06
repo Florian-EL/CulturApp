@@ -56,16 +56,8 @@ class FilmWidget(QWidget):
     def set_data(self, data : Film) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-        self.table.setItem(row, 1, QTableWidgetItem(data.type))
-        self.table.setItem(row, 2, QTableWidgetItem(data.genre))
-        self.table.setItem(row, 3, QTableWidgetItem(data.vo))
-        self.table.setItem(row, 4, QTableWidgetItem(data.cinema))
-        self.table.setItem(row, 5, QTableWidgetItem(data.updated))
-        self.table.setItem(row, 6, QTableWidgetItem(data.etat))
-        self.table.setItem(row, 7, QTableWidgetItem(data.annee_vu))
-        self.table.setItem(row, 8, QTableWidgetItem(data.nb_vu))
-        self.table.setItem(row, 9, QTableWidgetItem(str(data.note)))
+        for i, col in enumerate(self.columns) :
+            self.table.setItem(row, i, QTableWidgetItem(getattr(data, col.lower())))
     
     def load(self):
         for data in self.data:
