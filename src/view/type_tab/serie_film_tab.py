@@ -18,8 +18,8 @@ class SerieFilmWidget(QWidget):
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
-        self.table.setColumnCount(len(self.columns))
-        self.table.setHorizontalHeaderLabels(self.columns)
+        self.table.setColumnCount(len(self.columns[2:]))
+        self.table.setHorizontalHeaderLabels(self.columns[2:])
         layout.addWidget(self.table)
         
         self.load()
@@ -55,18 +55,16 @@ class SerieFilmWidget(QWidget):
     def set_data(self, data : SerieFilm) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        self.table.setItem(row, 0, QTableWidgetItem(data.nom_serie))
-        self.table.setItem(row, 1, QTableWidgetItem(data.film))
-        self.table.setItem(row, 2, QTableWidgetItem(data.titre))
-        self.table.setItem(row, 3, QTableWidgetItem(data.type))
-        self.table.setItem(row, 4, QTableWidgetItem(data.genre))
-        self.table.setItem(row, 5, QTableWidgetItem(data.vo))
-        self.table.setItem(row, 6, QTableWidgetItem(data.cinema))
-        self.table.setItem(row, 7, QTableWidgetItem(data.updated))
-        self.table.setItem(row, 8, QTableWidgetItem(data.etat))
-        self.table.setItem(row, 9, QTableWidgetItem(data.annee_vu))
-        self.table.setItem(row, 10, QTableWidgetItem(data.nb_vu))
-        self.table.setItem(row, 11, QTableWidgetItem(str(data.note)))
+        self.table.setItem(row, 0, QTableWidgetItem(data.titre))
+        self.table.setItem(row, 1, QTableWidgetItem(data.type))
+        self.table.setItem(row, 2, QTableWidgetItem(data.genre))
+        self.table.setItem(row, 3, QTableWidgetItem(data.vo))
+        self.table.setItem(row, 4, QTableWidgetItem(data.cinema))
+        self.table.setItem(row, 5, QTableWidgetItem(data.updated))
+        self.table.setItem(row, 6, QTableWidgetItem(data.etat))
+        self.table.setItem(row, 7, QTableWidgetItem(data.annee_vu))
+        self.table.setItem(row, 8, QTableWidgetItem(data.nb_vu))
+        self.table.setItem(row, 9, QTableWidgetItem(str(data.note)))
     
     def load(self):
         for data in self.data:
@@ -77,9 +75,13 @@ class SerieFilmWidget(QWidget):
         self.set_data(data)
     
     def open_add_window(self) :
-        add_window = AddData(self.columns)
+        col_idx = self.columns.index('Titre')
+        colonne = self.columns.copy()
+        colonne.pop(col_idx)
+        add_window = AddData(colonne)
         add_window.exec_()
         new_data = add_window.get_data()
+        new_data['Titre'] = new_data['Nom_serie'] + " - " + new_data['Film']
         
         data = SerieFilm()
         for col in self.columns :
