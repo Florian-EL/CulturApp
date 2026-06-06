@@ -13,11 +13,18 @@ class SerieWidget(QWidget):
         self.db = db
         self.data = self.db.get("serie", Serie)
         
-        self.columns = ["Titre", "Note"]
+        self.columns = ["Titre", "Type", "Genre", "VO", 
+                        "Updated", "Etat", "Nb_saison", "Nb_ep_vu",
+                        "Nb_ep_voir", "Nb_ep_total", "Nb_vu", "Note", 
+                        "Sortie", "S1_vu", "S1_tot", "S2_vu", "S2_tot",
+                        "S3_vu", "S3_tot", "S4_vu", "S4_tot", 
+                        "S5_vu", "S5_tot", "S6_vu", "S6_tot",
+                        "S7_vu", "S7_tot", "S8_vu", "S8_tot"]
+        #Nombre épisodes à voir Nombre épisodes total
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
-        self.table.setColumnCount(2)
+        self.table.setColumnCount(len(self.columns))
         self.table.setHorizontalHeaderLabels(self.columns)
         layout.addWidget(self.table)
         
@@ -51,22 +58,51 @@ class SerieWidget(QWidget):
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def set_data(self, data) :
+    def calculate(self, data: Serie):
+        nb_saison = 0
+        data.nb_ep_total = 0
+        data.nb_ep_vu = 0
+        for col in self.columns:
+            if col.endswith("_tot"):
+                if getattr(data, col.lower(), 0) != "":
+                    nb_saison += 1
+                    data.nb_ep_total += int(getattr(data, col.lower(), 0))
+            if col.endswith("_vu"):
+                if getattr(data, col.lower(), 0) != "":
+                    data.nb_ep_vu += int(getattr(data, col.lower(), 0))
+        
+        data.nb_saison = nb_saison
+        data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
+        
+        return data
+    
+    def set_data(self, data : Serie) :
         row = self.table.rowCount()
         self.table.insertRow(row)
-        self.table.setItem(row, 0, QTableWidgetItem(data.titre))
-        self.table.setItem(row, 1, QTableWidgetItem(str(data.note)))
+        for i, col in enumerate(self.columns) :
+            self.table.setItem(row, i, QTableWidgetItem(str(getattr(data, col.lower()))))
     
     def load(self):
         for data in self.data:
             self.set_data(data)
     
     def add(self, data: Serie):
-        self.db.add("serie", data)
-        self.set_data(data)
+        cal_data = self.calculate(data)
+        self.db.add("serie", cal_data)
+        self.set_data(cal_data)
     
     def open_add_window(self) :
-        add_window = AddData(self.columns)
+        colonne = self.columns.copy()
+        col_idx = self.columns.index('Nb_ep_total')
+        colonne.pop(col_idx)
+        col_idx = self.columns.index('Nb_ep_voir')
+        colonne.pop(col_idx)
+        col_idx = self.columns.index('Nb_ep_vu')
+        colonne.pop(col_idx)
+        col_idx = self.columns.index('Nb_saison')
+        colonne.pop(col_idx)
+        
+        add_window = AddData(colonne)
         add_window.exec_()
         new_data = add_window.get_data()
         
