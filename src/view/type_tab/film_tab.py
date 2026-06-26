@@ -1,9 +1,12 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy
+from dataclasses import fields
+
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy, QDialog
 from src.models.film import Film
 
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
+from src.view.edit_window import EditData
 
 
 class FilmWidget(QWidget):
@@ -12,15 +15,16 @@ class FilmWidget(QWidget):
         
         self.db = db
         self.type_tab = "film"
-        self.data = self.db.get(self.type_tab, Film)
+        self.model_cls = Film
+        self.data = self.db.get(self.type_tab, self.model_cls)
         
         self.columns = ["Titre", "Type", "Genre", "VO", "Cinema", 
                         "Updated", "Etat", "Annee_vu", "Nb_vu", "Note"]
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
-        self.table.setColumnCount(len(self.columns))
-        self.table.setHorizontalHeaderLabels(self.columns)
+        self.table.setColumnCount(len(self.columns) + 1)
+        self.table.setHorizontalHeaderLabels([""] + self.columns)
         layout.addWidget(self.table)
         
         self.load()
@@ -49,7 +53,7 @@ class FilmWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get(self.type_tab, Film)
+        self.data = self.db.get(self.type_tab, self.model_cls)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
@@ -57,7 +61,12 @@ class FilmWidget(QWidget):
         row = self.table.rowCount()
         self.table.insertRow(row)
         for i, col in enumerate(self.columns) :
-            self.table.setItem(row, i, QTableWidgetItem(getattr(data, col.lower())))
+            value = getattr(data, col.lower(), "")
+            self.table.setItem(row, i+1, QTableWidgetItem("" if value is None else str(value)))
+
+        edit_button = QPushButton("Edit")
+        edit_button.clicked.connect(lambda checked=False, current_data=data: self.open_edit_window(current_data))
+        self.table.setCellWidget(row, 0, edit_button)
     
     def load(self):
         for data in self.data:
@@ -66,6 +75,17 @@ class FilmWidget(QWidget):
     def add(self, data):
         self.db.add(self.type_tab, data)
         self.set_data(data)
+
+    def open_edit_window(self, data):
+        values = {col: getattr(data, col.lower(), "") for col in self.columns}
+        field_types = {field.name: field.type for field in fields(self.model_cls)}
+        dialog = EditData(self.columns, values=values, field_types=field_types, parent=self)
+        if dialog.exec_() == QDialog.Accepted:
+            updated_values = dialog.get_casted_data()
+            for col in self.columns:
+                setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
+            self.db.update(self.type_tab, data)
+            self.refresh()
     
     def open_add_window(self) :
         add_window = AddData(self.columns)
