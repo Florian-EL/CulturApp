@@ -26,9 +26,8 @@ class SerieWidget(QWidget):
                         "S3_vu", "S3_tot", "S4_vu", "S4_tot", 
                         "S5_vu", "S5_tot", "S6_vu", "S6_tot",
                         "S7_vu", "S7_tot", "S8_vu", "S8_tot"]
-        #Nombre épisodes à voir Nombre épisodes total
-        
-        
+        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_voir", "nb_ep_tot"}
+
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
         self.table.setColumnCount(len(self.columns) + 1)
@@ -80,6 +79,16 @@ class SerieWidget(QWidget):
         
         data.nb_saison = nb_saison
         data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
+        
+        data.etat = "FINI" if data.note != "" else "EN COURS"
+        
+        if data.nb_ep_total == 0 :
+            data.updated = "PAS SORTI"
+        elif data.nb_ep_total > data.nb_ep_vu :
+            data.etat = "EN COURS"
+            data.nb_ep_total = 1
+        elif data.nb_ep_total == data.nb_ep_vu :
+            data.etat == "FINI"
         
         return data
     
@@ -150,7 +159,7 @@ class SerieWidget(QWidget):
         for i, col in enumerate(self.columns) :
             value = getattr(data, col.lower(), "")
             self.table.setItem(row, i+1, QTableWidgetItem("" if value is None else str(value)))
-
+            
         edit_button = QPushButton("Edit")
         edit_button.clicked.connect(lambda checked=False, current_data=data: self.open_edit_window(current_data))
         self.table.setCellWidget(row, 0, edit_button)
@@ -163,7 +172,7 @@ class SerieWidget(QWidget):
         cal_data = self.calculate(data)
         self.db.add(self.table_name, cal_data)
         self.set_data(cal_data)
-
+    
     def open_edit_window(self, data):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
@@ -172,27 +181,22 @@ class SerieWidget(QWidget):
             updated_values = dialog.get_casted_data()
             for col in self.columns:
                 setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
-            self.db.update(self.table_name, data)
+            cal_data = self.calculate(data)
+            self.db.update(self.table_name, cal_data)
             self.refresh()
     
+    def get_addable_columns(self):
+        return [col for col in self.columns if col not in self.hidden_columns]
+
     def open_add_window(self) :
-        colonne = self.columns.copy()
-        col_idx = self.columns.index('Nb_ep_total')
-        colonne.pop(col_idx)
-        col_idx = self.columns.index('Nb_ep_voir')
-        colonne.pop(col_idx)
-        col_idx = self.columns.index('Nb_ep_vu')
-        colonne.pop(col_idx)
-        col_idx = self.columns.index('Nb_saison')
-        colonne.pop(col_idx)
-        
-        add_window = AddData(colonne)
+        addable_columns = self.get_addable_columns()
+        add_window = AddData(addable_columns)
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = Serie()
+        data = self.model_cls()
         for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col))
+            setattr(data, col.lower(), new_data.get(col, ""))
         
         self.add(data)
     

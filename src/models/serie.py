@@ -9,7 +9,7 @@ class Serie:
     vo          : str = ""
     updated     : str = ""
     etat        : str = ""
-    note        : int = 0
+    note        : float = 0
     sortie      : int = 0
     nb_saison   : int = 0
     nb_ep_vu    : int = 0

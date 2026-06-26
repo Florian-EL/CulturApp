@@ -4,4 +4,4 @@ from dataclasses import dataclass
 class Roman:
     id    : int = 0
     titre : str = ""
-    note  : int = 0
+    note  : float = 0

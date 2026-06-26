@@ -1,9 +1,10 @@
 from dataclasses import fields
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy, QDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, \
+                            QTableWidgetItem, QPushButton, QSizePolicy, QDialog, QLabel, QMessageBox
+import pandas as pd
+
 from src.models.film import Film
-
-
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 from src.view.edit_window import EditData
@@ -14,12 +15,14 @@ class FilmWidget(QWidget):
         super().__init__()
         
         self.db = db
-        self.type_tab = "film"
+        self.table_name = "film"
         self.model_cls = Film
-        self.data = self.db.get(self.type_tab, self.model_cls)
+        self.data = self.db.get(self.table_name, self.model_cls)
         
         self.columns = ["Titre", "Type", "Genre", "VO", "Cinema", 
-                        "Updated", "Etat", "Annee_vu", "Nb_vu", "Note"]
+                        "Updated", "Etat", "Annee_vu", "Nb_vu", "Note",
+                        "Sortie", "Nombre_ep_vu" ,"Nombre_ep_restant" ,"Nombre_ep_total"]
+        self.hidden_columns = {"Etat", "Nb_vu", "Nombre_ep_vu", "Nombre_ep_restant", "Nombre_ep_total"}
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -53,9 +56,92 @@ class FilmWidget(QWidget):
         
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get(self.type_tab, self.model_cls)
+        self.data = self.db.get(self.table_name, self.model_cls)
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
+    
+    def calculate(self, data: Film):
+        data.nb_ep_tot = 0
+        
+        try :
+            data.nb_ep_vu = len(data.annee_vu.split(","))
+        except AttributeError :
+            data.nb_ep_vu = 0 if data.annee_vu == 0 else 1
+        data.nb_vu = data.nb_ep_vu
+        
+        data.etat = "FINI" if data.note != "" else "EN COURS"
+        
+        if data.updated == "PAS SORTI" :
+            data.nb_ep_tot = 0
+        elif data.etat == "EN COURS" :
+            data.nb_ep_tot = 1
+        elif data.etat == "FINI" :
+            data.nb_ep_tot = data.nb_ep_vu
+        
+        data.nb_ep_res = data.nb_ep_tot - data.nb_ep_vu
+        
+        return data
+    
+    def add_import(self, df: pd.DataFrame) :
+        df_columns = set(df.columns)
+        required_columns = set([col.lower() for col in self.columns])
+        
+        if not required_columns.issubset(df_columns):
+            missing = required_columns - df_columns
+            QMessageBox.warning(self, "Erreur", f"Colonnes manquantes : {missing}")
+            return
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Importer des données")
+        dialog.setGeometry(100, 100, 400, 150)
+        
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel(f"Importer {len(df)} série(s).\nVoulez-vous remplacer toutes les données existantes ?"))
+        
+        buttons_layout = QHBoxLayout()
+        
+        replace_button = QPushButton("Remplacer")
+        replace_button.setStyleSheet("background-color: orange;")
+        replace_button.clicked.connect(lambda: self.import_and_replace(df, dialog))
+        
+        add_button = QPushButton("Ajouter")
+        add_button.setStyleSheet("background-color: green;")
+        add_button.clicked.connect(lambda: self._import_add(df, dialog))
+        
+        cancel_button = QPushButton("Annuler")
+        cancel_button.setStyleSheet("background-color: gray;")
+        cancel_button.clicked.connect(dialog.reject)
+        
+        buttons_layout.addWidget(replace_button)
+        buttons_layout.addWidget(add_button)
+        buttons_layout.addWidget(cancel_button)
+        
+        layout.addLayout(buttons_layout)
+        dialog.exec_()
+    
+    def import_and_replace(self, df: pd.DataFrame, dialog: QDialog):
+        for data in self.data:
+            self.db.delete(self.table_name, self.model_cls(id=data.id))
+        
+        self._import_add(df, dialog)
+    
+    def _import_add(self, df: pd.DataFrame, dialog: QDialog):
+        for _, row in df.iterrows():
+            data = self.model_cls()
+            for col in self.columns:
+                col_lower = col.lower()
+                if col_lower in df.columns:
+                    value = row[col_lower]
+                    if pd.isna(value):
+                        value = ""
+                    setattr(data, col_lower, value)
+            
+            cal_data = self.calculate(data)
+            self.db.add(self.table_name, cal_data)
+        
+        self.refresh()
+        dialog.accept()
+        QMessageBox.information(self, "Succès", f"{len(df)} série(s) importée(s) avec succès !")
     
     def set_data(self, data : Film) :
         row = self.table.rowCount()
@@ -73,8 +159,9 @@ class FilmWidget(QWidget):
             self.set_data(data)
     
     def add(self, data):
-        self.db.add(self.type_tab, data)
-        self.set_data(data)
+        cal_data = self.calculate(data)
+        self.db.update(self.table_name, cal_data)
+        self.set_data(cal_data)
 
     def open_edit_window(self, data):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
@@ -84,17 +171,22 @@ class FilmWidget(QWidget):
             updated_values = dialog.get_casted_data()
             for col in self.columns:
                 setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
-            self.db.update(self.type_tab, data)
+            cal_data = self.calculate(data)
+            self.db.update(self.table_name, cal_data)
             self.refresh()
     
+    def get_addable_columns(self):
+        return [col for col in self.columns if col not in self.hidden_columns]
+
     def open_add_window(self) :
-        add_window = AddData(self.columns)
+        addable_columns = self.get_addable_columns()
+        add_window = AddData(addable_columns)
         add_window.exec_()
         new_data = add_window.get_data()
         
         data = Film()
         for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col))
+            setattr(data, col.lower(), new_data.get(col, ""))
         
         self.add(data)
     
@@ -103,6 +195,6 @@ class FilmWidget(QWidget):
         del_window.exec_()
         data = del_window.get_data()
         
-        self.db.delete(self.type_tab, Film(id=int(data)))
+        self.db.delete(self.table_name, Film(id=int(data)))
         
         self.refresh()

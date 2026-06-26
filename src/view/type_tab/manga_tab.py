@@ -1,9 +1,10 @@
 from dataclasses import fields
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QSizePolicy, QDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, \
+                            QTableWidgetItem, QPushButton, QSizePolicy, QDialog, QLabel, QMessageBox
+import pandas as pd
+
 from src.models.manga import Manga
-
-
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 from src.view.edit_window import EditData
@@ -19,6 +20,7 @@ class MangaWidget(QWidget):
         self.data = self.db.get(self.table_name, self.model_cls)
         
         self.columns = ["Titre", "Note"]
+        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_voir", "nb_ep_tot"}
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -56,6 +58,95 @@ class MangaWidget(QWidget):
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
+    def calculate(self, data: Manga):
+        nb_saison = 0
+        data.nb_ep_total = 0
+        data.nb_ep_vu = 0
+        for col in self.columns:
+            if col.endswith("_tot"):
+                if getattr(data, col.lower(), 0) != "":
+                    nb_saison += 1
+                    data.nb_ep_total += int(getattr(data, col.lower(), 0))
+            if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
+                if getattr(data, col.lower(), 0) != "":
+                    data.nb_ep_vu += int(getattr(data, col.lower(), 0))
+        
+        data.nb_saison = nb_saison
+        data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
+        
+        data.etat = "FINI" if data.note != "" else "EN COURS"
+        
+        if data.nb_ep_total == 0 :
+            data.updated = "PAS SORTI"
+        elif data.nb_ep_total > data.nb_ep_vu :
+            data.etat = "EN COURS"
+            data.nb_ep_total = 1
+        elif data.nb_ep_total == data.nb_ep_vu :
+            data.etat == "FINI"
+        
+        return data
+    
+    def add_import(self, df: pd.DataFrame) :
+        df_columns = set(df.columns)
+        required_columns = set([col.lower() for col in self.columns])
+        
+        if not required_columns.issubset(df_columns):
+            missing = required_columns - df_columns
+            QMessageBox.warning(self, "Erreur", f"Colonnes manquantes : {missing}")
+            return
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Importer des données")
+        dialog.setGeometry(100, 100, 400, 150)
+        
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel(f"Importer {len(df)} série(s).\nVoulez-vous remplacer toutes les données existantes ?"))
+        
+        buttons_layout = QHBoxLayout()
+        
+        replace_button = QPushButton("Remplacer")
+        replace_button.setStyleSheet("background-color: orange;")
+        replace_button.clicked.connect(lambda: self.import_and_replace(df, dialog))
+        
+        add_button = QPushButton("Ajouter")
+        add_button.setStyleSheet("background-color: green;")
+        add_button.clicked.connect(lambda: self._import_add(df, dialog))
+        
+        cancel_button = QPushButton("Annuler")
+        cancel_button.setStyleSheet("background-color: gray;")
+        cancel_button.clicked.connect(dialog.reject)
+        
+        buttons_layout.addWidget(replace_button)
+        buttons_layout.addWidget(add_button)
+        buttons_layout.addWidget(cancel_button)
+        
+        layout.addLayout(buttons_layout)
+        dialog.exec_()
+    
+    def import_and_replace(self, df: pd.DataFrame, dialog: QDialog):
+        for data in self.data:
+            self.db.delete(self.table_name, self.model_cls(id=data.id))
+        
+        self._import_add(df, dialog)
+    
+    def _import_add(self, df: pd.DataFrame, dialog: QDialog):
+        for _, row in df.iterrows():
+            data = self.model_cls()
+            for col in self.columns:
+                col_lower = col.lower()
+                if col_lower in df.columns:
+                    value = row[col_lower]
+                    if pd.isna(value):
+                        value = ""
+                    setattr(data, col_lower, value)
+            
+            data = self.calculate(data)
+            self.db.add(self.table_name, data)
+        
+        self.refresh()
+        dialog.accept()
+        QMessageBox.information(self, "Succès", f"{len(df)} série(s) importée(s) avec succès !")
+    
     def set_data(self, data : Manga) :
         row = self.table.rowCount()
         self.table.insertRow(row)
@@ -72,8 +163,9 @@ class MangaWidget(QWidget):
             self.set_data(data)
     
     def add(self, data: Manga):
-        self.db.add(self.table_name, data)
-        self.set_data(data)
+        cal_data = self.calculate(data)
+        self.db.add(self.table_name, cal_data)
+        self.set_data(cal_data)
 
     def open_edit_window(self, data):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
@@ -83,17 +175,22 @@ class MangaWidget(QWidget):
             updated_values = dialog.get_casted_data()
             for col in self.columns:
                 setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
-            self.db.update(self.table_name, data)
+            cal_data = self.calculate(data)
+            self.db.update(self.table_name, cal_data)
             self.refresh()
     
+    def get_addable_columns(self):
+        return [col for col in self.columns if col not in self.hidden_columns]
+
     def open_add_window(self) :
-        add_window = AddData(self.columns)
+        addable_columns = self.get_addable_columns()
+        add_window = AddData(addable_columns)
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = Manga()
+        data = self.model_cls()
         for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col))
+            setattr(data, col.lower(), new_data.get(col, ""))
         
         self.add(data)
     

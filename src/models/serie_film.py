@@ -14,5 +14,5 @@ class SerieFilm:
     etat      : str = ""
     annee_vu  : int = 0
     nb_vu     : int = 0
-    note      : int = 0
+    note      : float = 0
 
