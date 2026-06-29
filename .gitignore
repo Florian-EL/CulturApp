@@ -1,5 +1,7 @@
 *.pyc
 /env
+/env_mini
 /build
 /src/CulturApp.egg-info
 /data
+.vscode
