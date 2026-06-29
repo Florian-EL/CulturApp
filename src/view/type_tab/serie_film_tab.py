@@ -20,8 +20,9 @@ class SerieFilmWidget(QWidget):
         self.data = self.db.get(self.table_name, self.model_cls)
         
         self.columns = ["Nom_serie", "Film", "Titre", "Type", "Genre", "VO", "Cinema", 
-                        "Updated", "Etat", "Annee_vu", "Nb_vu", "Note"]
-        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_voir", "nb_ep_tot"}
+                        "Updated", "Etat", "Annee_vu", "Nb_vu", "Note",
+                        "nb_ep_vu", "nb_ep_res", "nb_ep_tot"]
+        self.hidden_columns = {"Titre", "Etat", "nb_ep_vu", "nb_ep_res", "nb_ep_tot"}
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -60,30 +61,28 @@ class SerieFilmWidget(QWidget):
         self.load()
     
     def calculate(self, data: SerieFilm):
-        # nb_saison = 0
-        # data.nb_ep_total = 0
-        # data.nb_ep_vu = 0
-        # for col in self.columns:
-        #     if col.endswith("_tot"):
-        #         if getattr(data, col.lower(), 0) != "":
-        #             nb_saison += 1
-        #             data.nb_ep_total += int(getattr(data, col.lower(), 0))
-        #     if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
-        #         if getattr(data, col.lower(), 0) != "":
-        #             data.nb_ep_vu += int(getattr(data, col.lower(), 0))
+        if data.annee_vu != 0 and data.annee_vu != '' :
+            try :
+                data.nb_ep_vu = len(data.annee_vu.split(","))
+            except AttributeError :
+                data.nb_ep_vu = 1
+        else :
+            data.nb_ep_vu = 0
         
-        # data.nb_saison = nb_saison
-        # data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
+        data.nb_vu = data.nb_ep_vu
         
-        # data.etat = "FINI" if data.note != "" else "EN COURS"
+        data.etat = "FINI" if data.note != "" else "EN COURS"
         
-        # if data.nb_ep_total == 0 :
-        #     data.updated = "PAS SORTI"
-        # elif data.nb_ep_total > data.nb_ep_vu :
-        #     data.etat = "EN COURS"
-        #     data.nb_ep_total = 1
-        # elif data.nb_ep_total == data.nb_ep_vu :
-        #     data.etat == "FINI"
+        if data.updated == "PAS SORTI" :
+            data.nb_ep_tot = 0
+        elif data.etat == "EN COURS" :
+            data.nb_ep_tot = 1
+        elif data.etat == "FINI" :
+            data.nb_ep_tot = data.nb_ep_vu
+        
+        data.nb_ep_res = data.nb_ep_tot - data.nb_ep_vu
+
+        data.titre = data.nom_serie + " - " + data.film
         
         return data
     
@@ -189,11 +188,12 @@ class SerieFilmWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = self.model_cls()
-        for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col, ""))
-        
-        self.add(data)
+        if new_data["Film"] != "" :
+            data = self.model_cls()
+            for col in self.columns :
+                setattr(data, col.lower(), new_data.get(col, ""))
+            
+            self.add(data)
     
     def open_del_window(self) :
         del_window = DelData()

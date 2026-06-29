@@ -15,4 +15,8 @@ class SerieFilm:
     annee_vu  : int = 0
     nb_vu     : int = 0
     note      : float = 0
+    sortie    : str = ""
+    nb_ep_vu  : int = 0
+    nb_ep_res : int = 0
+    nb_ep_tot : int = 0
 
