@@ -19,8 +19,11 @@ class RomanWidget(QWidget):
         self.model_cls = Roman
         self.data = self.db.get(self.table_name, self.model_cls)
         
-        self.columns = ["Titre", "Note"]
-        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_voir", "nb_ep_tot"}
+        self.columns = ["Titre", "auteur", "type", "vo", "genre",
+                        "lu_suite", "nb_ep_deb", "nb_ep_act", "nb_ep_lu",
+                        "nb_ep_res", "nb_ep_tot", "updated", "etat", 
+                        "note", "nb_vu", "site"]
+        self.hidden_columns = {"Etat", "nb_ep_lu", "nb_ep_res", "nb_ep_tot"}
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -188,11 +191,12 @@ class RomanWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = self.model_cls()
-        for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col, ""))
-        
-        self.add(data)
+        if new_data["Titre"] != "" :
+            data = self.model_cls()
+            for col in self.columns :
+                setattr(data, col.lower(), new_data.get(col, ""))
+            
+            self.add(data)
     
     def open_del_window(self) :
         del_window = DelData()
