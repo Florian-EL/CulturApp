@@ -187,11 +187,12 @@ class WebtoonWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = self.model_cls()
-        for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col, ""))
-        
-        self.add(data)
+        if new_data["Titre"] != "" :
+            data = self.model_cls()
+            for col in self.columns :
+                setattr(data, col.lower(), new_data.get(col, ""))
+            
+            self.add(data)
     
     def open_del_window(self) :
         del_window = DelData()

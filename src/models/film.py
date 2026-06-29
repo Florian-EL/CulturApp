@@ -7,7 +7,7 @@ class Film:
     type      : str = ""
     genre     : str = ""
     vo        : str = ""
-    cinema    : bool = 0
+    cinema    : str = ""
     updated   : str = ""
     etat      : str = ""
     annee_vu  : int = 0

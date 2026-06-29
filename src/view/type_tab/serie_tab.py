@@ -17,16 +17,14 @@ class SerieWidget(QWidget):
         self.db = db
         self.table_name = "serie"
         self.model_cls = Serie
-        self.data = self.db.get(self.table_name, self.model_cls)
-        
         self.columns = ["Titre", "Type", "Genre", "VO", 
                         "Updated", "Etat", "Nb_saison", "Nb_ep_vu",
-                        "Nb_ep_voir", "Nb_ep_total", "Nb_vu", "Note", 
+                        "Nb_ep_res", "Nb_ep_tot", "Nb_vu", "Note", 
                         "Sortie", "S1_vu", "S1_tot", "S2_vu", "S2_tot",
                         "S3_vu", "S3_tot", "S4_vu", "S4_tot", 
                         "S5_vu", "S5_tot", "S6_vu", "S6_tot",
                         "S7_vu", "S7_tot", "S8_vu", "S8_tot"]
-        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_voir", "nb_ep_tot"}
+        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_res", "nb_ep_tot"}
 
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -34,6 +32,7 @@ class SerieWidget(QWidget):
         self.table.setHorizontalHeaderLabels([""] + self.columns)
         layout.addWidget(self.table)
         
+        self._load_data()
         self.load()
         
         buttons_layout = QHBoxLayout()
@@ -58,36 +57,39 @@ class SerieWidget(QWidget):
         super().showEvent(event)
         self.refresh()
         
+    def _load_data(self):
+        self.data = [self.calculate(data) for data in self.db.get(self.table_name, self.model_cls)]
+
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
-        self.data = self.db.get(self.table_name, self.model_cls)
+        self._load_data()
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
     def calculate(self, data: Serie):
         nb_saison = 0
-        data.nb_ep_total = 0
+        data.nb_ep_tot = 0
         data.nb_ep_vu = 0
         for col in self.columns:
             if col.endswith("_tot"):
                 if getattr(data, col.lower(), 0) != "":
                     nb_saison += 1
-                    data.nb_ep_total += int(getattr(data, col.lower(), 0))
+                    data.nb_ep_tot += int(getattr(data, col.lower(), 0))
             if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
                 if getattr(data, col.lower(), 0) != "":
                     data.nb_ep_vu += int(getattr(data, col.lower(), 0))
         
         data.nb_saison = nb_saison
-        data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
+        data.nb_ep_res = data.nb_ep_tot - data.nb_ep_vu
         
         data.etat = "FINI" if data.note != "" else "EN COURS"
         
-        if data.nb_ep_total == 0 :
+        if data.nb_ep_tot == 0 :
             data.updated = "PAS SORTI"
-        elif data.nb_ep_total > data.nb_ep_vu :
+        elif data.nb_ep_tot > data.nb_ep_vu :
             data.etat = "EN COURS"
-            data.nb_ep_total = 1
-        elif data.nb_ep_total == data.nb_ep_vu :
+            data.nb_ep_tot = 1
+        elif data.nb_ep_tot == data.nb_ep_vu :
             data.etat == "FINI"
         
         return data
@@ -194,11 +196,12 @@ class SerieWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = self.model_cls()
-        for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col, ""))
-        
-        self.add(data)
+        if new_data["Titre"] != "" :
+            data = self.model_cls()
+            for col in self.columns :
+                setattr(data, col.lower(), new_data.get(col, ""))
+            
+            self.add(data)
     
     def open_del_window(self) :
         del_window = DelData()

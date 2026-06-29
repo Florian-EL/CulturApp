@@ -12,9 +12,9 @@ class Serie:
     note        : float = 0
     sortie      : int = 0
     nb_saison   : int = 0
-    nb_ep_vu    : int = 0
-    nb_ep_voir  : int = 0
-    nb_ep_total : int = 0
+    nb_ep_vu  : int = 0
+    nb_ep_res : int = 0
+    nb_ep_tot : int = 0
     nb_vu       : int = 0
     s1_vu       : int = 0
     s1_tot      : int = 0
