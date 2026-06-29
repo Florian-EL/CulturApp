@@ -19,8 +19,11 @@ class MangaWidget(QWidget):
         self.model_cls = Manga
         self.data = self.db.get(self.table_name, self.model_cls)
         
-        self.columns = ["Titre", "Note"]
-        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_voir", "nb_ep_tot"}
+        self.columns = ["Titre", "Auteur", "Type", "VO", "Genre",
+                        "Lu_suite", "Ep_deb", "Ep_act", "Nb_ep_lu",
+                        "Nb_ep_res", "Nb_ep_tot", "Updated", "Etat", 
+                        "Note", "Nb_vu", "Site"]
+        self.hidden_columns = {"Etat", "Nb_ep_lu", "Nb_ep_res", "Nb_ep_tot"}
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -59,29 +62,15 @@ class MangaWidget(QWidget):
         self.load()
     
     def calculate(self, data: Manga):
-        nb_saison = 0
-        data.nb_ep_total = 0
-        data.nb_ep_vu = 0
-        for col in self.columns:
-            if col.endswith("_tot"):
-                if getattr(data, col.lower(), 0) != "":
-                    nb_saison += 1
-                    data.nb_ep_total += int(getattr(data, col.lower(), 0))
-            if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
-                if getattr(data, col.lower(), 0) != "":
-                    data.nb_ep_vu += int(getattr(data, col.lower(), 0))
-        
-        data.nb_saison = nb_saison
-        data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
-        
-        data.etat = "FINI" if data.note != "" else "EN COURS"
-        
-        if data.nb_ep_total == 0 :
+        data.nb_ep_lu = data.ep_act - data.ep_deb
+        data.nb_ep_res = data.nb_ep_tot - data.ep_act
+                
+        if data.nb_ep_tot == 0 :
             data.updated = "PAS SORTI"
-        elif data.nb_ep_total > data.nb_ep_vu :
+            data.etat = ""
+        elif data.nb_ep_tot > data.ep_act :
             data.etat = "EN COURS"
-            data.nb_ep_total = 1
-        elif data.nb_ep_total == data.nb_ep_vu :
+        elif data.nb_ep_tot == data.ep_act :
             data.etat == "FINI"
         
         return data
@@ -168,7 +157,7 @@ class MangaWidget(QWidget):
         self.set_data(cal_data)
 
     def open_edit_window(self, data):
-        values = {col: getattr(data, col.lower(), "") for col in self.columns}
+        values = {col: getattr(data, col.lower(), "") for col in self.get_addable_columns()}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
         dialog = EditData(self.columns, values=values, field_types=field_types, parent=self)
         if dialog.exec_() == QDialog.Accepted:
@@ -188,11 +177,12 @@ class MangaWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
         
-        data = self.model_cls()
-        for col in self.columns :
-            setattr(data, col.lower(), new_data.get(col, ""))
-        
-        self.add(data)
+        if new_data["Titre"] != "" :
+            data = self.model_cls()
+            for col in self.columns :
+                setattr(data, col.lower(), new_data.get(col, ""))
+            
+            self.add(data)
     
     def open_del_window(self) :
         del_window = DelData()
