@@ -21,8 +21,8 @@ class FilmWidget(QWidget):
         
         self.columns = ["Titre", "Type", "Genre", "VO", "Cinema", 
                         "Updated", "Etat", "Annee_vu", "Nb_vu", "Note",
-                        "Sortie", "Nombre_ep_vu" ,"Nombre_ep_restant" ,"Nombre_ep_total"]
-        self.hidden_columns = {"Etat", "Nb_vu", "Nombre_ep_vu", "Nombre_ep_restant", "Nombre_ep_total"}
+                        "Sortie", "nb_ep_vu" ,"nb_ep_res" ,"nb_ep_tot"]
+        self.hidden_columns = {"Etat", "Nb_vu", "nb_ep_vu" ,"nb_ep_res" ,"nb_ep_tot"}
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -60,21 +60,24 @@ class FilmWidget(QWidget):
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
     
-    def calculate(self, data: Film):
-        try :
-            data.nb_ep_vu = len(data.annee_vu.split(","))
-        except AttributeError :
-            data.nb_ep_vu = 0 if data.annee_vu == 0 else 1
-        data.nb_vu = data.nb_ep_vu
-        
+    def calculate(self, data: Film):        
         data.etat = "FINI" if data.note != "" else "EN COURS"
         
         if data.updated == "PAS SORTI" :
             data.nb_ep_tot = 0
+            data.nb_vu = 0
+            data.nb_ep_vu= 0
         elif data.etat == "EN COURS" :
             data.nb_ep_tot = 1
+            data.nb_ep_vu = 0
+            data.nb_vu = 0
         elif data.etat == "FINI" :
+            try :
+                data.nb_ep_vu = len(data.annee_vu.split(","))
+            except AttributeError :
+                data.nb_ep_vu = 0 if data.annee_vu == 0 else 1
             data.nb_ep_tot = data.nb_ep_vu
+            data.nb_vu = data.nb_vu
         
         data.nb_ep_res = data.nb_ep_tot - data.nb_ep_vu
         
@@ -181,7 +184,7 @@ class FilmWidget(QWidget):
         add_window = AddData(addable_columns)
         add_window.exec_()
         new_data = add_window.get_data()
-        
+                
         if new_data["Titre"] != "" :
             data = self.model_cls()
             for col in self.columns :

@@ -24,7 +24,7 @@ class SerieWidget(QWidget):
                         "S3_vu", "S3_tot", "S4_vu", "S4_tot", 
                         "S5_vu", "S5_tot", "S6_vu", "S6_tot",
                         "S7_vu", "S7_tot", "S8_vu", "S8_tot"]
-        self.hidden_columns = {"Etat", "nb_ep_vu", "nb_ep_res", "nb_ep_tot"}
+        self.hidden_columns = {"Etat", "Nb_ep_vu", "Nb_ep_res", "Nb_ep_tot"}
 
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
