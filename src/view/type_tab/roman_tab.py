@@ -19,10 +19,9 @@ class RomanWidget(QWidget):
         self.model_cls = Roman
         self.data = self.db.get(self.table_name, self.model_cls)
         
-        self.columns = ["Titre", "auteur", "type", "vo", "genre",
-                        "lu_suite", "nb_ep_deb", "nb_ep_act", "nb_ep_lu",
-                        "nb_ep_res", "nb_ep_tot", "updated", "etat", 
-                        "note", "nb_vu", "site"]
+        self.columns = ["Titre", "auteur", "type", "genre",
+                        "possede", "nb_ep_lu", "nb_ep_res", "nb_ep_tot",
+                        "updated", "etat", "note", "nb_vu"]
         self.hidden_columns = {"Etat", "nb_ep_lu", "nb_ep_res", "nb_ep_tot"}
         
         layout = QVBoxLayout(self)
@@ -62,29 +61,15 @@ class RomanWidget(QWidget):
         self.load()
     
     def calculate(self, data: Roman):
-        nb_saison = 0
-        data.nb_ep_total = 0
-        data.nb_ep_vu = 0
-        for col in self.columns:
-            if col.endswith("_tot"):
-                if getattr(data, col.lower(), 0) != "":
-                    nb_saison += 1
-                    data.nb_ep_total += int(getattr(data, col.lower(), 0))
-            if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
-                if getattr(data, col.lower(), 0) != "":
-                    data.nb_ep_vu += int(getattr(data, col.lower(), 0))
-        
-        data.nb_saison = nb_saison
-        data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
+        data.nb_ep_res = data.nb_ep_tot - data.nb_ep_lu
         
         data.etat = "FINI" if data.note != "" else "EN COURS"
         
-        if data.nb_ep_total == 0 :
+        if data.nb_ep_tot == 0 :
             data.updated = "PAS SORTI"
-        elif data.nb_ep_total > data.nb_ep_vu :
+        elif data.nb_ep_tot > data.nb_ep_lu :
             data.etat = "EN COURS"
-            data.nb_ep_total = 1
-        elif data.nb_ep_total == data.nb_ep_vu :
+        elif data.nb_ep_tot == data.nb_ep_lu :
             data.etat == "FINI"
         
         return data
