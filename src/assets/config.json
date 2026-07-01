@@ -1,3 +1,44 @@
 {
-    "data_folder": "/home/florian/Documents/Projets/Algo/CulturApp/data"
+  "data_folder": "/home/florian/Documents/Projets/Algo/CulturApp/data",
+  "columns": {
+    "serie": [
+      "Titre",
+      "Type",
+      "Genre",
+      "VO",
+      "Updated",
+      "Etat",
+      "Nb_saison",
+      "Nb_ep_vu",
+      "Nb_ep_res",
+      "Nb_ep_tot",
+      "Nb_vu",
+      "Note",
+      "Sortie",
+      "S1_vu",
+      "S1_tot",
+      "S2_vu",
+      "S2_tot",
+      "S3_vu",
+      "S3_tot",
+      "S4_vu",
+      "S4_tot",
+      "S5_vu",
+      "S5_tot",
+      "S6_vu",
+      "S6_tot",
+      "S7_vu",
+      "S7_tot",
+      "S8_vu",
+      "S8_tot"
+    ]
+  },
+  "hidden_columns": {
+    "serie": [
+      "Etat",
+      "Nb_ep_vu",
+      "Nb_ep_res",
+      "Nb_ep_tot"
+    ]
+  }
 }

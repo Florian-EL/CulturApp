@@ -4,26 +4,38 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMenuBar, QLabel, QScrollArea,
 from PyQt5.QtCore import Qt, QRectF
 
 from pandas import read_csv
+import json
+
+from src.models.serie import Serie
 
 from src.view.home_tab import HomeWidget
 
 from src.view.type_tab.film_tab import FilmWidget
 from src.view.type_tab.serie_film_tab import SerieFilmWidget
-from src.view.type_tab.serie_tab import SerieWidget
+# from src.view.type_tab.serie_tab import SerieWidget
 from src.view.type_tab.roman_tab import RomanWidget
 from src.view.type_tab.manga_tab import MangaWidget
 from src.view.type_tab.webtoon_tab import WebtoonWidget
 from src.view.type_tab.wattpad_tab import WattpadWidget
 
+
+from src.view.TypeTab import TypeWidget
+
 from src.services.database_manager import DatabaseManager
 from src.view.settings_dialog import SettingsDialog
+from src.services.config_manager import ConfigManager
 
 
 class CulturApp(QWidget) :
-    def __init__(self, data_folder) :
+    def __init__(self) :
         super().__init__()
+
+        config_manager = ConfigManager()
+        self.data_folder = config_manager.get_data_folder()
+
+        with open(config_manager.get_config_file(), 'r', encoding="utf-8") as file :
+            self.config = json.load(file)
         
-        self.data_folder = data_folder
         self.cultur_menu = ["Films", "Serie_films", "Series", "Romans", "Mangas", "Webtoons", "Wattpads"]
         
         self.init_ui()
@@ -43,11 +55,12 @@ class CulturApp(QWidget) :
         
         self.menu_films = FilmWidget(self.db)
         self.menu_serie_films = SerieFilmWidget(self.db)
-        self.menu_series = SerieWidget(self.db)
+        self.menu_series = TypeWidget(self.db, "serie", Serie, self.config["columns"]["serie"], self.config["hidden_columns"]["serie"])
         self.menu_romans = RomanWidget(self.db)
         self.menu_mangas = MangaWidget(self.db)
         self.menu_webtoons = WebtoonWidget(self.db)
         self.menu_wattpads = WattpadWidget(self.db)
+
         
         menu_bar = QMenuBar()
         self.layout.setMenuBar(menu_bar)
