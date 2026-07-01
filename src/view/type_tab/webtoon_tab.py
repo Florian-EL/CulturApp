@@ -19,7 +19,9 @@ class WebtoonWidget(QWidget):
         self.model_cls = Webtoon
         self.data = self.db.get(self.table_name, self.model_cls)
         
-        self.columns = ["Titre", "Note"]
+        self.columns = ["Titre", "Auteur", "Type", "Genre",
+                        "Updated", "Etat", "Note",
+                        "nb_ep_vu", "nb_ep_res", "nb_ep_tot", "nb_vu"]
         
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
@@ -58,30 +60,16 @@ class WebtoonWidget(QWidget):
         self.load()
     
     def calculate(self, data: Webtoon):
-        # nb_saison = 0
-        # data.nb_ep_total = 0
-        # data.nb_ep_vu = 0
-        # for col in self.columns:
-        #     if col.endswith("_tot"):
-        #         if getattr(data, col.lower(), 0) != "":
-        #             nb_saison += 1
-        #             data.nb_ep_total += int(getattr(data, col.lower(), 0))
-        #     if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
-        #         if getattr(data, col.lower(), 0) != "":
-        #             data.nb_ep_vu += int(getattr(data, col.lower(), 0))
+        data.nb_ep_res = data.nb_ep_tot - data.nb_ep_vu
         
-        # data.nb_saison = nb_saison
-        # data.nb_ep_voir = data.nb_ep_total - data.nb_ep_vu
+        data.etat = "FINI" if data.note != "" else "EN COURS"
         
-        # data.etat = "FINI" if data.note != "" else "EN COURS"
-        
-        # if data.nb_ep_total == 0 :
-        #     data.updated = "PAS SORTI"
-        # elif data.nb_ep_total > data.nb_ep_vu :
-        #     data.etat = "EN COURS"
-        #     data.nb_ep_total = 1
-        # elif data.nb_ep_total == data.nb_ep_vu :
-        #     data.etat == "FINI"
+        if data.nb_ep_tot == 0 :
+            data.updated = "PAS SORTI"
+        elif data.nb_ep_tot > data.nb_ep_vu :
+            data.etat = "EN COURS"
+        elif data.nb_ep_tot == data.nb_ep_vu :
+            data.etat == "FINI"
         
         return data
     
