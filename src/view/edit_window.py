@@ -31,7 +31,8 @@ class EditData(QDialog):
 
             input_field = QLineEdit()
             input_field.setPlaceholderText(col)
-            input_field.setMaxLength(255)
+            input_field.setMaxLength(512)
+            input_field.setFixedWidth(128)
             input_field.setFixedHeight(28)
             if values is not None:
                 input_field.setText(str(values.get(col, "")))
@@ -46,9 +47,10 @@ class EditData(QDialog):
         scroll_area.setHorizontalScrollBarPolicy(scroll_area.horizontalScrollBarPolicy())
         scroll_area.setVerticalScrollBarPolicy(scroll_area.verticalScrollBarPolicy())
 
-        self.setMinimumWidth(540)
-        self.setMaximumWidth(1040)
-        self.setMaximumHeight(720)
+        self.setMinimumWidth(1024)
+        self.setMinimumHeight(256)
+        # self.setMaximumWidth(1040)
+        # self.setMaximumHeight(720)
 
         self.layout.addWidget(scroll_area)
 

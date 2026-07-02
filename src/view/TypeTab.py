@@ -1,16 +1,18 @@
 from dataclasses import fields
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, \
-                            QTableWidgetItem, QPushButton, QSizePolicy, QDialog, QLabel, QMessageBox
+                            QTableWidgetItem, QPushButton, QSizePolicy, QDialog, QLabel, QMessageBox, QTabWidget
 import pandas as pd
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 from src.view.edit_window import EditData
+from src.view.gallery_widget import GalleryWidget, sanitize_filename
+from pathlib import Path
 
 
 class TypeWidget(QWidget):
-    def __init__(self, db, table_name, model_cls, columns, hidden_columns):
+    def __init__(self, db, table_name, model_cls, columns, hidden_columns, data_folder):
         super().__init__()
         
         self.db = db
@@ -18,32 +20,53 @@ class TypeWidget(QWidget):
         self.model_cls = model_cls
         self.columns = columns
         self.hidden_columns = hidden_columns
+        self.data_folder = data_folder
 
         layout = QVBoxLayout(self)
+
+        # Create tabs: Table and Gallery
+        self.tab_widget = QTabWidget()
+
+        # Table tab
+        table_page = QWidget()
+        table_layout = QVBoxLayout(table_page)
+
         self.table = QTableWidget()
         self.table.setColumnCount(len(self.columns) + 1)
         self.table.setHorizontalHeaderLabels([""] + self.columns)
-        layout.addWidget(self.table)
-        
+        table_layout.addWidget(self.table)
+
         self._load_data()
         self.load()
-        
-        buttons_layout = QHBoxLayout()
-        
+
+        # Buttons moved to shared area below tabs
+
+        self.tab_widget.addTab(table_page, "Table")
+
+        # Gallery tab
+        self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self)
+        self.tab_widget.addTab(self.gallery, "Gallery")
+
+        # Refresh gallery when switching to that tab
+        self.tab_widget.currentChanged.connect(self.on_subtab_changed)
+
+        layout.addWidget(self.tab_widget)
+
+        # Shared buttons visible on both tabs
+        shared_buttons = QHBoxLayout()
         add_button = QPushButton("Add")
         add_button.setStyleSheet("background-color: green;")
         add_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         add_button.clicked.connect(self.open_add_window)
-        
+
         del_button = QPushButton("Del")
         del_button.setStyleSheet("background-color: red;")
         del_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         del_button.clicked.connect(self.open_del_window)
-        
-        buttons_layout.addWidget(add_button)
-        buttons_layout.addWidget(del_button)
-        
-        layout.addLayout(buttons_layout)
+
+        shared_buttons.addWidget(add_button)
+        shared_buttons.addWidget(del_button)
+        layout.addLayout(shared_buttons)
     
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""
@@ -58,12 +81,26 @@ class TypeWidget(QWidget):
         self._load_data()
         self.table.setRowCount(0)  # Vide le tableau
         self.load()
+        # Refresh gallery view as well
+        try:
+            if hasattr(self, 'gallery'):
+                self.gallery.refresh()
+        except Exception:
+            pass
+
+    def on_subtab_changed(self, index):
+        # If switching to gallery tab, refresh its content
+        try:
+            if self.tab_widget.tabText(index) == "Gallery":
+                self.gallery.refresh()
+        except Exception:
+            pass
     
     def calculate(self, data):
         if self.table_name == "manga" :
             data.nb_ep_vu = data.ep_act
         
-        data.nb_ep_res = data.nb_ep_tot - data.nb_ep_vu
+        data.nb_ep_res = int(data.nb_ep_tot) - int(data.nb_ep_vu)
         data.etat = "FINI" if data.note != "" else "EN COURS"
 
         if self.table_name == "serie" :
@@ -109,8 +146,8 @@ class TypeWidget(QWidget):
             data.etat == "FINI"
         
         if self.table_name == "manga" : 
-            data.nb_ep_vu = data.ep_act - data.ep_deb
-            data.nb_ep_res = data.nb_ep_tot - data.ep_act
+            data.nb_ep_vu = int(data.ep_act) - int(data.ep_deb)
+            data.nb_ep_res = int(data.nb_ep_tot) - int(data.ep_act)
         
         
         return data
@@ -202,6 +239,28 @@ class TypeWidget(QWidget):
         dialog = EditData(self.columns, values=values, field_types=field_types, parent=self)
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()
+            # Handle title change: rename image file if present
+            old_title = getattr(data, 'titre', '')
+            new_title = updated_values.get('Titre', old_title)
+            if new_title != old_title and old_title != "":
+                try:
+                    base_old = sanitize_filename(old_title)
+                    base_new = sanitize_filename(new_title)
+                    exts = ['.jpg', '.jpeg', '.png', '.webp']
+                    for ext in exts:
+                        old_path = Path(self.data_folder) / (base_old + ext)
+                        if old_path.exists():
+                            new_path = Path(self.data_folder) / (base_new + ext)
+                            # Ensure parent exists
+                            Path(self.data_folder).mkdir(parents=True, exist_ok=True)
+                            try:
+                                old_path.rename(new_path)
+                            except Exception:
+                                pass
+                            break
+                except Exception:
+                    pass
+
             for col in self.columns:
                 setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
             cal_data = self.calculate(data)
