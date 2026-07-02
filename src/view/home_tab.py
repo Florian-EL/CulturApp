@@ -7,3 +7,6 @@ class HomeWidget(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Accueil"))
+    
+    def refresh(self) :
+        pass

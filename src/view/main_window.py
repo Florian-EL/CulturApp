@@ -1,28 +1,37 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QScrollArea, QWidget, \
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMenuBar, QLabel, QScrollArea, QWidget, \
     QGraphicsView, QGraphicsScene, QTableView, QTableWidget, QHeaderView, QTableWidgetItem, QSizePolicy, \
-    QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget
+    QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QFileDialog, QAction
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QColor
+
+from pandas import read_csv
+import json
+
+from src.models.film import Film
+from src.models.serie_film import SerieFilm
+from src.models.serie import Serie
+from src.models.roman import Roman
+from src.models.manga import Manga
+from src.models.wattpad import Wattpad
+from src.models.webtoon import Webtoon
 
 from src.view.home_tab import HomeWidget
-
-from src.view.film_tab import FilmWidget
-from src.view.serie_film_tab import SerieFilmWidget
-from src.view.serie_tab import SerieWidget
-from src.view.roman_tab import RomanWidget
-from src.view.manga_tab import MangaWidget
-from src.view.webtoon_tab import WebtoonWidget
-from src.view.wattpad_tab import WattpadWidget
+from src.view.TypeTab import TypeWidget
 
 from src.services.database_manager import DatabaseManager
 from src.view.settings_dialog import SettingsDialog
+from src.services.config_manager import ConfigManager
 
 
 class CulturApp(QWidget) :
-    def __init__(self, data_folder) :
+    def __init__(self) :
         super().__init__()
+
+        config_manager = ConfigManager()
+        self.data_folder = config_manager.get_data_folder()
+
+        with open(config_manager.get_config_file(), 'r', encoding="utf-8") as file :
+            self.config = json.load(file)
         
-        self.data_folder = data_folder
         self.cultur_menu = ["Films", "Serie_films", "Series", "Romans", "Mangas", "Webtoons", "Wattpads"]
         
         self.init_ui()
@@ -40,14 +49,19 @@ class CulturApp(QWidget) :
         self.home_widget = HomeWidget()
         self.db = DatabaseManager(self.data_folder)
         
-        self.menu_films = FilmWidget(self.db)
-        self.menu_serie_films = SerieFilmWidget(self.db)
-        self.menu_series = SerieWidget(self.db)
-        self.menu_romans = RomanWidget(self.db)
-        self.menu_mangas = MangaWidget(self.db)
-        self.menu_webtoons = WebtoonWidget(self.db)
-        self.menu_wattpads = WattpadWidget(self.db)
-
+        self.menu_films = TypeWidget(self.db, "film", Film, self.config["columns"]["film"], self.config["hidden_columns"]["film"])
+        self.menu_serie_films = TypeWidget(self.db, "serie_film", SerieFilm, self.config["columns"]["serie_film"], self.config["hidden_columns"]["serie_film"])
+        self.menu_series = TypeWidget(self.db, "serie", Serie, self.config["columns"]["serie"], self.config["hidden_columns"]["serie"])
+        self.menu_romans = TypeWidget(self.db, "roman", Roman, self.config["columns"]["roman"], self.config["hidden_columns"]["roman"])
+        self.menu_mangas = TypeWidget(self.db, "manga", Manga, self.config["columns"]["manga"], self.config["hidden_columns"]["manga"])
+        self.menu_webtoons = TypeWidget(self.db, "webtoon", Webtoon, self.config["columns"]["webtoon"], self.config["hidden_columns"]["webtoon"])
+        self.menu_wattpads = TypeWidget(self.db, "wattpad", Wattpad, self.config["columns"]["wattpad"], self.config["hidden_columns"]["wattpad"])
+        
+        menu_bar = QMenuBar()
+        self.layout.setMenuBar(menu_bar)
+        self.menu_widget = menu_bar.addMenu("File")        
+        self.create_import_menu()
+        
         self.stack.addWidget(self.home_widget)
         self.stack.addWidget(self.menu_films)
         self.stack.addWidget(self.menu_serie_films)
@@ -105,3 +119,16 @@ class CulturApp(QWidget) :
         self.layout.addLayout(self.window_layout)
     
 
+    def create_import_menu(self):
+        action_csv = QAction("Importer CSV", self)
+        action_csv.triggered.connect(self.import_csv)
+        self.menu_widget.addAction(action_csv)
+        
+
+    def import_csv(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,"Importer un fichier CSV","","CSV (*.csv)")
+        if file_path != "" :
+            widget = self.stack.currentWidget()
+            df = read_csv(file_path, delimiter=";")
+            widget.add_import(df)

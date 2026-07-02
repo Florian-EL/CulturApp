@@ -133,6 +133,17 @@ class DatabaseManager:
         sql = f"DELETE FROM {table} WHERE id = ?"
         cursor.execute(sql, (obj.id,))
         self.conn.commit()
+
+    def update(self, table: str, obj):
+        cursor = self.conn.cursor()
+
+        data = self.model_to_row(obj)
+        assignments = ", ".join(f"{column} = ?" for column in data.keys())
+        values = list(data.values()) + [obj.id]
+
+        sql = f"UPDATE {table} SET {assignments} WHERE id = ?"
+        cursor.execute(sql, tuple(values))
+        self.conn.commit()
     
     def get(self, table: str, model_cls):
         cursor = self.conn.cursor()
