@@ -6,19 +6,15 @@ from PyQt5.QtCore import Qt, QRectF
 from pandas import read_csv
 import json
 
+from src.models.film import Film
+from src.models.serie_film import SerieFilm
 from src.models.serie import Serie
+from src.models.roman import Roman
+from src.models.manga import Manga
+from src.models.wattpad import Wattpad
+from src.models.webtoon import Webtoon
 
 from src.view.home_tab import HomeWidget
-
-from src.view.type_tab.film_tab import FilmWidget
-from src.view.type_tab.serie_film_tab import SerieFilmWidget
-# from src.view.type_tab.serie_tab import SerieWidget
-from src.view.type_tab.roman_tab import RomanWidget
-from src.view.type_tab.manga_tab import MangaWidget
-from src.view.type_tab.webtoon_tab import WebtoonWidget
-from src.view.type_tab.wattpad_tab import WattpadWidget
-
-
 from src.view.TypeTab import TypeWidget
 
 from src.services.database_manager import DatabaseManager
@@ -53,23 +49,19 @@ class CulturApp(QWidget) :
         self.home_widget = HomeWidget()
         self.db = DatabaseManager(self.data_folder)
         
-        self.menu_films = FilmWidget(self.db)
-        self.menu_serie_films = SerieFilmWidget(self.db)
+        self.menu_films = TypeWidget(self.db, "film", Film, self.config["columns"]["film"], self.config["hidden_columns"]["film"])
+        self.menu_serie_films = TypeWidget(self.db, "serie_film", SerieFilm, self.config["columns"]["serie_film"], self.config["hidden_columns"]["serie_film"])
         self.menu_series = TypeWidget(self.db, "serie", Serie, self.config["columns"]["serie"], self.config["hidden_columns"]["serie"])
-        self.menu_romans = RomanWidget(self.db)
-        self.menu_mangas = MangaWidget(self.db)
-        self.menu_webtoons = WebtoonWidget(self.db)
-        self.menu_wattpads = WattpadWidget(self.db)
-
+        self.menu_romans = TypeWidget(self.db, "roman", Roman, self.config["columns"]["roman"], self.config["hidden_columns"]["roman"])
+        self.menu_mangas = TypeWidget(self.db, "manga", Manga, self.config["columns"]["manga"], self.config["hidden_columns"]["manga"])
+        self.menu_webtoons = TypeWidget(self.db, "webtoon", Webtoon, self.config["columns"]["webtoon"], self.config["hidden_columns"]["webtoon"])
+        self.menu_wattpads = TypeWidget(self.db, "wattpad", Wattpad, self.config["columns"]["wattpad"], self.config["hidden_columns"]["wattpad"])
         
         menu_bar = QMenuBar()
         self.layout.setMenuBar(menu_bar)
         self.menu_widget = menu_bar.addMenu("File")        
         self.create_import_menu()
         
-        
-        #self.stack.addWidget(self.menu_widget)
-
         self.stack.addWidget(self.home_widget)
         self.stack.addWidget(self.menu_films)
         self.stack.addWidget(self.menu_serie_films)

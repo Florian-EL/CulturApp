@@ -11,7 +11,7 @@ class Manga:
     lu_suite  : str = ""
     ep_deb    : int = 0
     ep_act    : int = 0
-    nb_ep_lu  : int = 0
+    nb_ep_vu  : int = 0
     nb_ep_res : int = 0
     nb_ep_tot : int = 0
     updated   : str = ""

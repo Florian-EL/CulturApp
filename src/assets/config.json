@@ -1,7 +1,40 @@
 {
   "data_folder": "/home/florian/Documents/Projets/Algo/CulturApp/data",
   "columns": {
-    "serie": [
+    "film" :[
+      "Titre",
+      "Type",
+      "Genre",
+      "VO",
+      "Cinema",
+      "Updated",
+      "Etat",
+      "Annee_vu",
+      "Nb_vu",
+      "Note",
+      "Sortie",
+      "nb_ep_vu",
+      "nb_ep_res",
+      "nb_ep_tot"
+    ],
+    "serie_film" : [
+      "Nom_serie",
+      "Film",
+      "Titre",
+      "Type",
+      "Genre",
+      "VO",
+      "Cinema",
+      "Updated",
+      "Etat",
+      "Annee_vu",
+      "Nb_vu",
+      "Note",
+      "nb_ep_vu",
+      "nb_ep_res",
+      "nb_ep_tot"
+    ],
+    "serie" : [
       "Titre",
       "Type",
       "Genre",
@@ -31,14 +64,103 @@
       "S7_tot",
       "S8_vu",
       "S8_tot"
+    ],
+    "roman" : [
+      "Titre",
+      "auteur",
+      "type",
+      "genre",
+      "possede",
+      "nb_ep_vu",
+      "nb_ep_res",
+      "nb_ep_tot",
+      "updated",
+      "etat",
+      "note",
+      "nb_vu"
+    ],
+    "manga" : [
+      "Titre",
+      "Auteur",
+      "Type", 
+      "VO",
+      "Genre",
+      "Lu_suite",
+      "Ep_deb",
+      "Ep_act",
+      "Nb_ep_vu",
+      "Nb_ep_res",
+      "Nb_ep_tot",
+      "Updated",
+      "Etat", 
+      "Note",
+      "Nb_vu",
+      "Site"
+    ],
+    "webtoon" : [
+      "Titre",
+      "Auteur",
+      "Type",
+      "Genre",
+      "Updated",
+      "Etat",
+      "Note",
+      "nb_ep_vu",
+      "nb_ep_res",
+      "nb_ep_tot",
+      "nb_vu"
+    ],
+    "wattpad" : [
+      "Titre",
+      "Auteur",
+      "Type",
+      "Genre",
+      "nb_ep_vu",
+      "nb_ep_tot",
+      "nb_ep_res",
+      "Updated",
+      "Etat",
+      "nb_vu",
+      "Note"
     ]
   },
   "hidden_columns": {
+    "film" : [
+      "Etat",
+      "Nb_vu",
+      "nb_ep_vu",
+      "nb_ep_res",
+      "nb_ep_tot"
+    ],
+    "serie_film" : [
+      "Titre",
+      "Etat",
+      "nb_ep_vu",
+      "nb_ep_res",
+      "nb_ep_tot"
+    ],
     "serie": [
       "Etat",
       "Nb_ep_vu",
       "Nb_ep_res",
       "Nb_ep_tot"
+    ],
+    "roman" : [
+      "Etat",
+      "nb_ep_res"
+    ],
+    "manga" : [
+      "Etat",
+      "Nb_ep_vu",
+      "Nb_ep_res"
+    ],
+    "webtoon" : [
+      "Etat",
+      "nb_ep_res"
+    ],
+    "wattpad" : [
+      "Etat",
+      "nb_ep_res"
     ]
   }
 }

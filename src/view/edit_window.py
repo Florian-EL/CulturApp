@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QLabel, QWidget, QGridLayout, QScrollArea
 
 
 class EditData(QDialog):
@@ -10,12 +10,24 @@ class EditData(QDialog):
         self.columns = columns
         self.inputs = {}
 
-        for col in self.columns:
-            row_layout = QHBoxLayout()
+        field_count = len(self.columns)
+        max_rows = 10
+        column_count = min(3, max(1, (field_count + max_rows - 1) // max_rows))
+        rows_per_column = (field_count + column_count - 1) // column_count
+
+        content_widget = QWidget()
+        grid_layout = QGridLayout(content_widget)
+        grid_layout.setContentsMargins(0, 0, 0, 0)
+        grid_layout.setHorizontalSpacing(12)
+        grid_layout.setVerticalSpacing(8)
+
+        for index, col in enumerate(self.columns):
+            col_index = index // rows_per_column
+            row_index = index % rows_per_column
+
             label = QLabel(col)
             label.setStyleSheet("font-weight: bold;")
-            label.setFixedWidth(120)
-            row_layout.addWidget(label)
+            label.setFixedWidth(140)
 
             input_field = QLineEdit()
             input_field.setPlaceholderText(col)
@@ -24,9 +36,21 @@ class EditData(QDialog):
             if values is not None:
                 input_field.setText(str(values.get(col, "")))
             self.inputs[col] = input_field
-            row_layout.addWidget(input_field)
 
-            self.layout.addLayout(row_layout)
+            grid_layout.addWidget(label, row_index, col_index * 2)
+            grid_layout.addWidget(input_field, row_index, col_index * 2 + 1)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(content_widget)
+        scroll_area.setHorizontalScrollBarPolicy(scroll_area.horizontalScrollBarPolicy())
+        scroll_area.setVerticalScrollBarPolicy(scroll_area.verticalScrollBarPolicy())
+
+        self.setMinimumWidth(540)
+        self.setMaximumWidth(1040)
+        self.setMaximumHeight(720)
+
+        self.layout.addWidget(scroll_area)
 
         buttons_layout = QHBoxLayout()
         save_button = QPushButton("Enregistrer")

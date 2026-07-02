@@ -8,7 +8,7 @@ class Roman:
     type      : str = ""
     genre     : str = ""
     possede   : str = ""
-    nb_ep_lu  : int = 0
+    nb_ep_vu  : int = 0
     nb_ep_res : int = 0
     nb_ep_tot : int = 0
     updated   : str = ""

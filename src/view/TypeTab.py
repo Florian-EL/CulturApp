@@ -60,29 +60,58 @@ class TypeWidget(QWidget):
         self.load()
     
     def calculate(self, data):
-        nb_saison = 0
-        data.nb_ep_tot = 0
-        data.nb_ep_vu = 0
-        for col in self.columns:
-            if col.endswith("_tot"):
-                if getattr(data, col.lower(), 0) != "":
-                    nb_saison += 1
-                    data.nb_ep_tot += int(getattr(data, col.lower(), 0))
-            if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
-                if getattr(data, col.lower(), 0) != "":
-                    data.nb_ep_vu += int(getattr(data, col.lower(), 0))
+        if self.table_name == "manga" :
+            data.nb_ep_vu = data.ep_act
         
-        data.nb_saison = nb_saison
         data.nb_ep_res = data.nb_ep_tot - data.nb_ep_vu
-        
         data.etat = "FINI" if data.note != "" else "EN COURS"
+
+        if self.table_name == "serie" :
+            nb_saison = 0
+            data.nb_ep_tot = 0
+            data.nb_ep_vu = 0
+            for col in self.columns:
+                if col.endswith("_tot"):
+                    if getattr(data, col.lower(), 0) != "":
+                        nb_saison += 1
+                        data.nb_ep_tot += int(getattr(data, col.lower(), 0))
+                if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
+                    if getattr(data, col.lower(), 0) != "":
+                        data.nb_ep_vu += int(getattr(data, col.lower(), 0))
+            data.nb_saison = nb_saison
+        
+        if self.table_name in ["film", "serie_film"] :
+            if data.updated == "PAS SORTI" :
+                data.nb_ep_tot = 0
+                data.nb_vu = 0
+                data.nb_ep_vu= 0
+            elif data.etat == "EN COURS" :
+                data.nb_ep_tot = 1
+                data.nb_ep_vu = 0
+                data.nb_vu = 0
+            elif data.etat == "FINI" :
+                try :
+                    data.nb_ep_vu = len(data.annee_vu.split(","))
+                except AttributeError :
+                    data.nb_ep_vu = 0 if data.annee_vu == 0 else 1
+                data.nb_ep_tot = data.nb_ep_vu
+                data.nb_vu = data.nb_vu
+        
+        if self.table_name == "serie_film" :
+            data.titre = data.nom_serie + " - " + data.film
         
         if data.nb_ep_tot == 0 :
             data.updated = "PAS SORTI"
+            data.etat = ""
         elif data.nb_ep_tot > data.nb_ep_vu :
             data.etat = "EN COURS"
         elif data.nb_ep_tot == data.nb_ep_vu :
             data.etat == "FINI"
+        
+        if self.table_name == "manga" : 
+            data.nb_ep_vu = data.ep_act - data.ep_deb
+            data.nb_ep_res = data.nb_ep_tot - data.ep_act
+        
         
         return data
     
