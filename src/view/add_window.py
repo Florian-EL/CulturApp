@@ -28,7 +28,6 @@ class AddData(QDialog) :
         
         for col in self.columns :
             widget = self.inputs.get(col)
-            
             data[col] = widget.text()
         
         return data
