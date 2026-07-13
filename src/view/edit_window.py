@@ -89,9 +89,9 @@ class EditData(QDialog):
         if field_type is str:
             return str(value)
         if field_type is int:
-            return int(value) if str(value).strip() != "" else 0
+            return int(value) if str(value).strip() != "" else ""
         if field_type is float:
-            return float(value) if str(value).strip() != "" else 0.0
+            return float(value) if str(value).strip() != "" else ""
         if field_type is bool:
             if isinstance(value, bool):
                 return value

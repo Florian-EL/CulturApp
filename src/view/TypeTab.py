@@ -40,12 +40,9 @@ class TypeWidget(QWidget):
         self.load()
 
         # Buttons moved to shared area below tabs
-
-        self.tab_widget.addTab(table_page, "Table")
-
-        # Gallery tab
         self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self)
         self.tab_widget.addTab(self.gallery, "Gallery")
+        self.tab_widget.addTab(table_page, "Table")
 
         # Refresh gallery when switching to that tab
         self.tab_widget.currentChanged.connect(self.on_subtab_changed)
