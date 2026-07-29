@@ -20,6 +20,8 @@ from PyQt5.QtWidgets import (
     QFrame,
 )
 
+from src.view.edit_window import EditData
+
 
 def sanitize_filename(name: str) -> str:
     invalid = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
@@ -30,9 +32,15 @@ def sanitize_filename(name: str) -> str:
 
 class ClickableLabel(QLabel):
     clicked = pyqtSignal()
+
     def mousePressEvent(self, event):
-        self.clicked.emit()
-        super().mousePressEvent(event)
+        try:
+            self.clicked.emit()
+            super().mousePressEvent(event)
+        except RuntimeError as exc:
+            if "wrapped C/C++ object" in str(exc):
+                return
+            raise
 
 
 class GalleryWidget(QWidget):
@@ -41,16 +49,10 @@ class GalleryWidget(QWidget):
     IMAGE_WIDTH = 160
     IMAGE_HEIGHT = 240
 
-    def __init__(
-        self,
-        db,
-        table_name,
-        model_cls,
-        columns,
-        data_folder: Path,
-        parent=None,
-    ):
+    def __init__(self, db, table_name, model_cls, columns, data_folder: Path, parent=None):
         super().__init__(parent)
+        self.parent = parent
+        
 
         self.db = db
         self.table_name = table_name
@@ -411,32 +413,7 @@ class GalleryWidget(QWidget):
 
         return [("Progression", "—", "text")]
 
-    def show_details(self, data):
-        dialog = QDialog(self)
-        dialog.setWindowTitle(getattr(data, "titre", "Détails"))
-        dialog.resize(920, 720)
-        dialog.setStyleSheet("""
-        QDialog{
-            background:#1f1f1f;
-        }
-        QLabel{
-            color:white;
-            font-size:12px;
-        }
-        QPushButton{
-            padding:8px;
-        }
-        """)
-
-        outer_layout = QVBoxLayout(dialog)
-        outer_layout.setContentsMargins(0, 0, 0, 0)
-
-        scroll = QScrollArea(dialog)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.NoFrame)
-        scroll.setStyleSheet("background:transparent;")
-        outer_layout.addWidget(scroll)
-
+    def build_detail_content(self, data, dialog=None, scroll=None):
         content = QWidget()
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(18, 18, 18, 18)
@@ -568,23 +545,101 @@ class GalleryWidget(QWidget):
         )
 
         content_layout.addLayout(sections_grid)
-
         content_layout.addStretch()
 
         buttons = QHBoxLayout()
+        edit_btn = QPushButton("Éditer")
+        edit_btn.clicked.connect(
+            lambda _, d=data: self.open_edit_window(d, detail_dialog=dialog, detail_scroll=scroll)
+        )
+
         image_btn = QPushButton("Changer l'image")
         image_btn.clicked.connect(
             lambda _, d=data: self.request_and_download(d)
         )
 
         close_btn = QPushButton("Fermer")
-        close_btn.clicked.connect(dialog.accept)
+        if dialog is not None:
+            close_btn.clicked.connect(dialog.accept)
 
         buttons.addStretch()
+        buttons.addWidget(edit_btn)
         buttons.addWidget(image_btn)
         buttons.addWidget(close_btn)
         content_layout.addLayout(buttons)
 
+        return content
+
+    def refresh_detail_content(self, dialog, data, scroll):
+        dialog.setWindowTitle(getattr(data, "titre", "Détails"))
+        content = self.build_detail_content(data, dialog=dialog, scroll=scroll)
         scroll.setWidget(content)
+
+    def open_edit_window(self, data, detail_dialog=None, detail_scroll=None):
+        values = {col: getattr(data, col.lower(), "") for col in self.columns}
+        field_types = {field.name: field.type for field in fields(self.model_cls)}
+        dialog = EditData(self.columns, values=values, field_types=field_types, parent=self)
+
+        if dialog.exec_() == QDialog.Accepted:
+            updated_values = dialog.get_casted_data()
+            # Handle title change: rename image file if present
+            old_title = getattr(data, 'titre', '')
+            new_title = updated_values.get('Titre', old_title)
+            if new_title != old_title and old_title != "":
+                try:
+                    base_old = sanitize_filename(old_title)
+                    base_new = sanitize_filename(new_title)
+                    exts = ['.jpg', '.jpeg', '.png', '.webp']
+                    for ext in exts:
+                        old_path = Path(self.data_folder) / (base_old + ext)
+                        if old_path.exists():
+                            new_path = Path(self.data_folder) / (base_new + ext)
+                            # Ensure parent exists
+                            Path(self.data_folder).mkdir(parents=True, exist_ok=True)
+                            try:
+                                old_path.rename(new_path)
+                            except Exception:
+                                pass
+                            break
+                except Exception:
+                    pass
+
+            for col in self.columns:
+                setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
+            
+            cal_data = self.parent.calculate(data)
+            self.db.update(self.table_name, cal_data)
+            self.refresh()
+
+            if detail_dialog is not None and detail_scroll is not None:
+                self.refresh_detail_content(detail_dialog, data, detail_scroll)
+
+    def show_details(self, data):
+        dialog = QDialog(self)
+        dialog.setWindowTitle(getattr(data, "titre", "Détails"))
+        dialog.resize(920, 720)
+        dialog.setStyleSheet("""
+        QDialog{
+            background:#1f1f1f;
+        }
+        QLabel{
+            color:white;
+            font-size:12px;
+        }
+        QPushButton{
+            padding:8px;
+        }
+        """)
+
+        outer_layout = QVBoxLayout(dialog)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+
+        scroll = QScrollArea(dialog)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("background:transparent;")
+        outer_layout.addWidget(scroll)
+
+        self.refresh_detail_content(dialog, data, scroll)
         dialog.exec_()
 
