@@ -6,12 +6,16 @@ import sys
 class ConfigManager:
     """Gère la configuration de l'application (chemin du dossier data, etc.)"""
     
-    def __init__(self):
+    def __init__(self, test):
         # Déterminer le répertoire de base de l'application
         self.app_dir = self._get_app_dir()
         
         # Chemin du fichier config : à côté de l'exécutable
-        self.config_file = self.app_dir / "src/assets/config.json"
+        if test :
+            self.config_file = self.app_dir / "src/assets/config_test.json"
+        else :
+            self.config_file = self.app_dir / "src/assets/config.json"
+            
         self.default_data_folder = self.app_dir / "data"
         
         self.config = self._load_config()
