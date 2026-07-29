@@ -23,10 +23,10 @@ from src.services.config_manager import ConfigManager
 
 
 class CulturApp(QWidget) :
-    def __init__(self) :
+    def __init__(self, test=False) :
         super().__init__()
 
-        config_manager = ConfigManager()
+        config_manager = ConfigManager(test)
         self.data_folder = config_manager.get_data_folder()
 
         with open(config_manager.get_config_file(), 'r', encoding="utf-8") as file :
@@ -46,8 +46,8 @@ class CulturApp(QWidget) :
         self.stack = QStackedWidget()
         self.main_layout.addWidget(self.stack)
 
-        self.home_widget = HomeWidget()
         self.db = DatabaseManager(self.data_folder)
+        self.home_widget = HomeWidget(self.db)
         
         self.menu_films = TypeWidget(self.db, "film", Film, self.config["columns"]["film"], self.config["hidden_columns"]["film"], self.data_folder)
         self.menu_serie_films = TypeWidget(self.db, "serie_film", SerieFilm, self.config["columns"]["serie_film"], self.config["hidden_columns"]["serie_film"], self.data_folder)
