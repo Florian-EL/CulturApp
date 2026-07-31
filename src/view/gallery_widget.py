@@ -18,6 +18,8 @@ from PyQt5.QtWidgets import (
     QInputDialog,
     QScrollArea,
     QFrame,
+    QApplication,
+    QMessageBox,
 )
 
 from src.view.edit_window import EditData
@@ -77,89 +79,119 @@ class GalleryWidget(QWidget):
         self.scroll.setWidget(self.container)
         self.refresh()
 
-    # ------------------------------------------------------------------
-    # Image helpers
-    # ------------------------------------------------------------------
-
     def find_image(self, title: str):
-
+        
         base = sanitize_filename(title)
-
-        for ext in (
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".webp",
-        ):
-
+        
+        for ext in (".jpg", ".jpeg", ".png", ".webp"):
             candidate = self.data_folder / (base + ext)
-
             if candidate.exists():
                 return str(candidate)
-
+        
         return None
 
     def download_image_for(self, title: str, url: str):
-
         try:
-
             base = sanitize_filename(title)
-
             _, ext = os.path.splitext(url)
-
-            if ext.lower() not in (
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".webp",
-            ):
+            if ext in (".jpg", ".jpeg", ".png", ".webp"):
                 ext = ".jpg"
-
+            
             self.data_folder.mkdir(
                 parents=True,
                 exist_ok=True,
             )
-
+            
             target = self.data_folder / (base + ext)
-
             urlretrieve(url, str(target))
-
+            
             return str(target)
-
-        except Exception:
+        
+        except Exception as e :
+            print(e)
             return None
 
+    def download_image_from_clipboard(self, title: str, image=None):
+        if image is None:
+            clipboard = QApplication.clipboard()
+            image = clipboard.image()
+
+        if image is None or image.isNull():
+            return None
+
+        try:
+            base = sanitize_filename(title)
+            self.data_folder.mkdir(parents=True, exist_ok=True)
+            target = self.data_folder / f"{base}.jpg"
+            if image.save(str(target), "jpg"):
+                return str(target)
+        except Exception as exc:
+            print(exc)
+
+        return None
+
+    def choose_image_source(self):
+        clipboard = QApplication.clipboard()
+        clipboard_image = clipboard.image()
+        has_clipboard_image = clipboard_image is not None and not clipboard_image.isNull()
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Nouvelle image")
+        msg.setText("Choisir la source de l'image :")
+        msg.setIcon(QMessageBox.Question)
+
+        clipboard_btn = msg.addButton("Presse-papiers", QMessageBox.ActionRole)
+        url_btn = msg.addButton("URL", QMessageBox.ActionRole)
+        msg.addButton(QMessageBox.Cancel)
+
+        if not has_clipboard_image:
+            clipboard_btn.setEnabled(False)
+            clipboard_btn.setText("Presse-papiers (vide)")
+
+        msg.exec_()
+
+        if msg.clickedButton() == clipboard_btn and has_clipboard_image:
+            return "clipboard"
+        if msg.clickedButton() == url_btn:
+            return "url"
+        return None
+
     def request_and_download(self, data):
-
-        url, ok = QInputDialog.getText(
-            self,
-            "Nouvelle image",
-            "URL de l'image :",
-        )
-
-        if not (ok and url):
+        source = self.choose_image_source()
+        if source == "clipboard":
+            result = self.download_image_from_clipboard(getattr(data, "titre", ""))
+            if result:
+                self.refresh()
+            else:
+                QMessageBox.information(
+                    self,
+                    "Image non importée",
+                    "Aucune image n'a pu être récupérée depuis le presse-papiers.",
+                )
             return
 
-        result = self.download_image_for(
-            getattr(data, "titre", ""),
-            url,
-        )
+        if source == "url":
+            clipboard = QApplication.clipboard()
+            url = clipboard.text()
+            
+            
 
-        if result:
-            self.refresh()
+            result = self.download_image_for(
+                getattr(data, "titre", ""),
+                url,
+            )
 
-    # ------------------------------------------------------------------
-    # Small helpers
-    # ------------------------------------------------------------------
+            if result:
+                self.refresh()
 
     def get_author(self, data):
-
+        
         if hasattr(data, "auteur"):
             return getattr(data, "auteur")
-
+        
         if hasattr(data, "nom_serie"):
             return getattr(data, "nom_serie")
-
+        
         return ""
 
     def format_note(self, value):
@@ -172,7 +204,7 @@ class GalleryWidget(QWidget):
         
         stars = round(note / 4)
         stars = max(0, min(5, stars))
-
+        
         return "{}{}   {:.1f}/10".format(
             "★" * stars,
             "☆" * (5 - stars),

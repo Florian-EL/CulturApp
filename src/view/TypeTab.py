@@ -276,7 +276,7 @@ class TypeWidget(QWidget):
         if new_data["Titre"] != "" :
             data = self.model_cls()
             for col in self.columns :
-                setattr(data, col.lower(), new_data.get(col, ""))
+                setattr(data, col.lower(), new_data.get(col, 0))
             
             self.add(data)
     
