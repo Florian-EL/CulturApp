@@ -49,6 +49,7 @@
       "Nb_ep_tot",
       "Nb_vu",
       "Note",
+      "Priorite",
       "Sortie",
       "S1_vu",
       "S1_tot",
@@ -170,6 +171,10 @@
         "order": "asc"
       },
       {
+        "field": "priorite",
+        "order": "asc"
+      },
+      {
         "field": "titre",
         "order": "asc"
       }
@@ -248,6 +253,7 @@
     ],
     "serie": [
       "Etat",
+      "Nb_saison",
       "Nb_ep_vu",
       "Nb_ep_res",
       "Nb_ep_tot"

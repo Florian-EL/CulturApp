@@ -12,7 +12,7 @@ class SerieFilm:
     cinema    : bool = 0
     updated   : str = ""
     etat      : str = ""
-    annee_vu  : int = 0
+    annee_vu  : str = ""
     nb_vu     : int = 0
     note      : float = 0
     sortie    : str = ""
