@@ -9,9 +9,9 @@ from src.services.config_manager import ConfigManager
 class SettingsDialog(QDialog):
     """Dialogue pour configurer les paramètres de l'application"""
     
-    def __init__(self, parent=None):
+    def __init__(self, test, parent=None):
         super().__init__(parent)
-        self.config_manager = ConfigManager()
+        self.config_manager = ConfigManager(test)
         self.init_ui()
     
     def init_ui(self):

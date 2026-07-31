@@ -25,7 +25,7 @@ from src.services.config_manager import ConfigManager
 class CulturApp(QWidget) :
     def __init__(self, test=False) :
         super().__init__()
-
+        self.test = test
         config_manager = ConfigManager(test)
         self.data_folder = config_manager.get_data_folder()
 
@@ -109,7 +109,7 @@ class CulturApp(QWidget) :
     
     def open_settings(self):
         """Ouvre le dialogue des paramètres"""
-        settings_dialog = SettingsDialog(self)
+        settings_dialog = SettingsDialog(self.test, self)
         settings_dialog.exec_()
     
     def define_layout(self) :
