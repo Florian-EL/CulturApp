@@ -2,19 +2,20 @@ from dataclasses import dataclass
 
 @dataclass
 class Serie:
-    id     : int = 0
-    titre  : str = ""
+    id          : int = 0
+    titre       : str = ""
     type        : str = ""
     genre       : str = ""
     vo          : str = ""
     updated     : str = ""
     etat        : str = ""
     note        : float = 0
-    sortie      : int = 0
+    sortie      : str = ""
+    priorite    : int = 0
     nb_saison   : int = 0
-    nb_ep_vu  : int = 0
-    nb_ep_res : int = 0
-    nb_ep_tot : int = 0
+    nb_ep_vu    : int = 0
+    nb_ep_res   : int = 0
+    nb_ep_tot   : int = 0
     nb_vu       : int = 0
     s1_vu       : int = 0
     s1_tot      : int = 0
