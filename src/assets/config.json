@@ -12,11 +12,11 @@
       "Annee_vu",
       "Nb_vu",
       "Note",
-      "Priorite",
       "Sortie",
       "nb_ep_vu",
       "nb_ep_res",
-      "nb_ep_tot"
+      "nb_ep_tot",
+      "Notice"
     ],
     "serie_film" : [
       "Nom_serie",
@@ -33,7 +33,8 @@
       "Note",
       "nb_ep_vu",
       "nb_ep_res",
-      "nb_ep_tot"
+      "nb_ep_tot",
+      "Notice"
     ],
     "serie" : [
       "Titre",
@@ -48,7 +49,6 @@
       "Nb_ep_tot",
       "Nb_vu",
       "Note",
-      "Priorite",
       "Sortie",
       "S1_vu",
       "S1_tot",
@@ -65,7 +65,8 @@
       "S7_vu",
       "S7_tot",
       "S8_vu",
-      "S8_tot"
+      "S8_tot",
+      "Notice"
     ],
     "roman" : [
       "Titre",
@@ -79,7 +80,8 @@
       "updated",
       "etat",
       "note",
-      "nb_vu"
+      "nb_vu",
+      "Notice"
     ],
     "manga" : [
       "Titre",
@@ -97,7 +99,8 @@
       "Etat", 
       "Note",
       "Nb_vu",
-      "Site"
+      "Site",
+      "Notice"
     ],
     "webtoon" : [
       "Titre",
@@ -110,7 +113,8 @@
       "nb_ep_vu",
       "nb_ep_res",
       "nb_ep_tot",
-      "nb_vu"
+      "nb_vu",
+      "Notice"
     ],
     "wattpad" : [
       "Titre",
@@ -123,7 +127,108 @@
       "Updated",
       "Etat",
       "nb_vu",
-      "Note"
+      "Note",
+      "Notice"
+    ]
+  },
+  "initial_sort": {
+    "film": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "serie_film": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "serie": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "roman": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "manga": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "webtoon": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "wattpad": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
     ]
   },
   "hidden_columns": {

@@ -54,7 +54,7 @@ class GalleryWidget(QWidget):
     def __init__(self, db, table_name, model_cls, columns, data_folder: Path, parent=None):
         super().__init__(parent)
         self.parent = parent
-        
+        self.items = None
 
         self.db = db
         self.table_name = table_name
@@ -224,13 +224,19 @@ class GalleryWidget(QWidget):
         cols = max(1, viewport_width // (self.CARD_WIDTH + spacing),)
         return cols
 
-    def refresh(self):
+    def refresh(self, items=None):
         self.clear_grid()
-        try:
-            datas = self.db.get(self.table_name, self.model_cls)
-        except Exception:
-            datas = []
 
+        if items is not None:
+            self.items = list(items)
+
+        if self.items is None:
+            try:
+                self.items = list(self.db.get(self.table_name, self.model_cls))
+            except Exception:
+                self.items = []
+
+        datas = self.items or []
         cols = self.compute_columns()
         for index, data in enumerate(datas):
             row = index // cols
@@ -531,6 +537,7 @@ class GalleryWidget(QWidget):
             ("Auteur", author or "—", "text"),
             ("Pays", country_value or "—", "chip"),
             ("Sortie", getattr(data, "sortie", "") or "—", "text"),
+            ("Notice", getattr(data, "notice", "") or "—", "text"),
         ]
 
         if hasattr(data, "nb_saison") and getattr(data, "nb_saison", 0):
@@ -610,7 +617,7 @@ class GalleryWidget(QWidget):
     def open_edit_window(self, data, detail_dialog=None, detail_scroll=None):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
-        dialog = EditData(self.columns, values=values, field_types=field_types, parent=self)
+        dialog = EditData(self.parent.get_addable_columns(), values=values, field_types=field_types, parent=self)
 
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()

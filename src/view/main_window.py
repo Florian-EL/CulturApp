@@ -48,14 +48,15 @@ class CulturApp(QWidget) :
 
         self.db = DatabaseManager(self.data_folder)
         self.home_widget = HomeWidget(self.db)
+        initial_sorts = self.config.get("initial_sort", {})
         
-        self.menu_films = TypeWidget(self.db, "film", Film, self.config["columns"]["film"], self.config["hidden_columns"]["film"], self.data_folder)
-        self.menu_serie_films = TypeWidget(self.db, "serie_film", SerieFilm, self.config["columns"]["serie_film"], self.config["hidden_columns"]["serie_film"], self.data_folder)
-        self.menu_series = TypeWidget(self.db, "serie", Serie, self.config["columns"]["serie"], self.config["hidden_columns"]["serie"], self.data_folder)
-        self.menu_romans = TypeWidget(self.db, "roman", Roman, self.config["columns"]["roman"], self.config["hidden_columns"]["roman"], self.data_folder)
-        self.menu_mangas = TypeWidget(self.db, "manga", Manga, self.config["columns"]["manga"], self.config["hidden_columns"]["manga"], self.data_folder)
-        self.menu_webtoons = TypeWidget(self.db, "webtoon", Webtoon, self.config["columns"]["webtoon"], self.config["hidden_columns"]["webtoon"], self.data_folder)
-        self.menu_wattpads = TypeWidget(self.db, "wattpad", Wattpad, self.config["columns"]["wattpad"], self.config["hidden_columns"]["wattpad"], self.data_folder)
+        self.menu_films = TypeWidget(self.db, "film", Film, self.config["columns"]["film"], self.config["hidden_columns"]["film"], self.data_folder, initial_sort_rules=initial_sorts.get("film", []))
+        self.menu_serie_films = TypeWidget(self.db, "serie_film", SerieFilm, self.config["columns"]["serie_film"], self.config["hidden_columns"]["serie_film"], self.data_folder, initial_sort_rules=initial_sorts.get("serie_film", []))
+        self.menu_series = TypeWidget(self.db, "serie", Serie, self.config["columns"]["serie"], self.config["hidden_columns"]["serie"], self.data_folder, initial_sort_rules=initial_sorts.get("serie", []))
+        self.menu_romans = TypeWidget(self.db, "roman", Roman, self.config["columns"]["roman"], self.config["hidden_columns"]["roman"], self.data_folder, initial_sort_rules=initial_sorts.get("roman", []))
+        self.menu_mangas = TypeWidget(self.db, "manga", Manga, self.config["columns"]["manga"], self.config["hidden_columns"]["manga"], self.data_folder, initial_sort_rules=initial_sorts.get("manga", []))
+        self.menu_webtoons = TypeWidget(self.db, "webtoon", Webtoon, self.config["columns"]["webtoon"], self.config["hidden_columns"]["webtoon"], self.data_folder, initial_sort_rules=initial_sorts.get("webtoon", []))
+        self.menu_wattpads = TypeWidget(self.db, "wattpad", Wattpad, self.config["columns"]["wattpad"], self.config["hidden_columns"]["wattpad"], self.data_folder, initial_sort_rules=initial_sorts.get("wattpad", []))
         
         menu_bar = QMenuBar()
         self.layout.setMenuBar(menu_bar)

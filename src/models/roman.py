@@ -15,3 +15,4 @@ class Roman:
     etat      : str = ""
     note      : float = 0
     nb_vu     : int = 0
+    notice    : str = ""

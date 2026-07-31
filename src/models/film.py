@@ -17,4 +17,4 @@ class Film:
     nb_ep_vu  : int = 0
     nb_ep_res : int = 0
     nb_ep_tot : int = 0
-
+    notice    : str = ""

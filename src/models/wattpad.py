@@ -14,3 +14,4 @@ class Wattpad:
     etat      : str = ""
     nb_vu     : int = 0
     note      : float = 0
+    notice    : str = ""

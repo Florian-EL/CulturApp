@@ -33,3 +33,4 @@ class Serie:
     s7_tot      : int = 0
     s8_vu       : int = 0
     s8_tot      : int = 0
+    notice    : str = ""

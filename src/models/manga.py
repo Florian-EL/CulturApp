@@ -19,3 +19,4 @@ class Manga:
     note      : float = 0
     nb_vu     : int = 0
     site      : str = ""
+    notice    : str = ""
