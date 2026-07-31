@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMenuBar, QLabel, QScrollArea, QWidget, \
     QGraphicsView, QGraphicsScene, QTableView, QTableWidget, QHeaderView, QTableWidgetItem, QSizePolicy, \
     QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QFileDialog, QAction
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtCore import Qt, QRectF, QTimer
 
 from pandas import read_csv
 import json
@@ -32,7 +32,20 @@ class CulturApp(QWidget) :
         with open(config_manager.get_config_file(), 'r', encoding="utf-8") as file :
             self.config = json.load(file)
         
-        self.cultur_menu = ["Films", "Serie_films", "Series", "Romans", "Mangas", "Webtoons", "Wattpads"]
+        self.cultur_menu = [
+            ("Films", "film"),
+            ("Serie_films", "serie_film"),
+            ("Series", "serie"),
+            ("Romans", "roman"),
+            ("Mangas", "manga"),
+            ("Webtoons", "webtoon"),
+            ("Wattpads", "wattpad"),
+        ]
+        self.initial_sorts = self.config.get("initial_sort", {})
+        self._type_widgets = {}
+        self._type_widget_specs = {}
+        self._background_load_timer = None
+        self._background_loaded = False
         
         self.init_ui()
     
@@ -48,15 +61,50 @@ class CulturApp(QWidget) :
 
         self.db = DatabaseManager(self.data_folder)
         self.home_widget = HomeWidget(self.db)
-        initial_sorts = self.config.get("initial_sort", {})
-        
-        self.menu_films = TypeWidget(self.db, "film", Film, self.config["columns"]["film"], self.config["hidden_columns"]["film"], self.data_folder, initial_sort_rules=initial_sorts.get("film", []))
-        self.menu_serie_films = TypeWidget(self.db, "serie_film", SerieFilm, self.config["columns"]["serie_film"], self.config["hidden_columns"]["serie_film"], self.data_folder, initial_sort_rules=initial_sorts.get("serie_film", []))
-        self.menu_series = TypeWidget(self.db, "serie", Serie, self.config["columns"]["serie"], self.config["hidden_columns"]["serie"], self.data_folder, initial_sort_rules=initial_sorts.get("serie", []))
-        self.menu_romans = TypeWidget(self.db, "roman", Roman, self.config["columns"]["roman"], self.config["hidden_columns"]["roman"], self.data_folder, initial_sort_rules=initial_sorts.get("roman", []))
-        self.menu_mangas = TypeWidget(self.db, "manga", Manga, self.config["columns"]["manga"], self.config["hidden_columns"]["manga"], self.data_folder, initial_sort_rules=initial_sorts.get("manga", []))
-        self.menu_webtoons = TypeWidget(self.db, "webtoon", Webtoon, self.config["columns"]["webtoon"], self.config["hidden_columns"]["webtoon"], self.data_folder, initial_sort_rules=initial_sorts.get("webtoon", []))
-        self.menu_wattpads = TypeWidget(self.db, "wattpad", Wattpad, self.config["columns"]["wattpad"], self.config["hidden_columns"]["wattpad"], self.data_folder, initial_sort_rules=initial_sorts.get("wattpad", []))
+        self._type_widget_specs = {
+            "film": {
+                "table_name": "film",
+                "model_cls": Film,
+                "columns": self.config["columns"]["film"],
+                "hidden_columns": self.config["hidden_columns"]["film"],
+            },
+            "serie_film": {
+                "table_name": "serie_film",
+                "model_cls": SerieFilm,
+                "columns": self.config["columns"]["serie_film"],
+                "hidden_columns": self.config["hidden_columns"]["serie_film"],
+            },
+            "serie": {
+                "table_name": "serie",
+                "model_cls": Serie,
+                "columns": self.config["columns"]["serie"],
+                "hidden_columns": self.config["hidden_columns"]["serie"],
+            },
+            "roman": {
+                "table_name": "roman",
+                "model_cls": Roman,
+                "columns": self.config["columns"]["roman"],
+                "hidden_columns": self.config["hidden_columns"]["roman"],
+            },
+            "manga": {
+                "table_name": "manga",
+                "model_cls": Manga,
+                "columns": self.config["columns"]["manga"],
+                "hidden_columns": self.config["hidden_columns"]["manga"],
+            },
+            "webtoon": {
+                "table_name": "webtoon",
+                "model_cls": Webtoon,
+                "columns": self.config["columns"]["webtoon"],
+                "hidden_columns": self.config["hidden_columns"]["webtoon"],
+            },
+            "wattpad": {
+                "table_name": "wattpad",
+                "model_cls": Wattpad,
+                "columns": self.config["columns"]["wattpad"],
+                "hidden_columns": self.config["hidden_columns"]["wattpad"],
+            },
+        }
         
         menu_bar = QMenuBar()
         self.layout.setMenuBar(menu_bar)
@@ -64,13 +112,6 @@ class CulturApp(QWidget) :
         self.create_import_menu()
         
         self.stack.addWidget(self.home_widget)
-        self.stack.addWidget(self.menu_films)
-        self.stack.addWidget(self.menu_serie_films)
-        self.stack.addWidget(self.menu_series)
-        self.stack.addWidget(self.menu_romans)
-        self.stack.addWidget(self.menu_mangas)
-        self.stack.addWidget(self.menu_webtoons)
-        self.stack.addWidget(self.menu_wattpads)
         
         # Rafraîchir les données quand on change d'onglet
         self.stack.currentChanged.connect(self.on_tab_changed)
@@ -79,6 +120,7 @@ class CulturApp(QWidget) :
         self.define_layout()
         
         self.setLayout(self.layout)
+        self._schedule_background_preload()
         
     def set_window(self) :
         button_home = QPushButton("Home")
@@ -87,11 +129,11 @@ class CulturApp(QWidget) :
         button_home.clicked.connect(lambda: self.stack.setCurrentWidget(self.home_widget))
         self.right_menu_layout.addWidget(button_home)
         
-        for menu in self.cultur_menu :
-            button = QPushButton(menu)
+        for menu_name, menu_key in self.cultur_menu:
+            button = QPushButton(menu_name)
             button.setStyleSheet("background-color: red;")
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            button.clicked.connect(lambda checked=False, m=menu: self.stack.setCurrentWidget(getattr(self, f"menu_{m.lower()}")))
+            button.clicked.connect(lambda checked=False, key=menu_key: self._show_type_widget(key))
             self.right_menu_layout.addWidget(button)
         
         # Ajouter un bouton Paramètres
@@ -102,10 +144,48 @@ class CulturApp(QWidget) :
         button_settings.clicked.connect(self.open_settings)
         self.right_menu_layout.addWidget(button_settings)
     
+    def _schedule_background_preload(self):
+        if self._background_loaded:
+            return
+        if self._background_load_timer is None:
+            self._background_load_timer = QTimer(self)
+            self._background_load_timer.setSingleShot(True)
+            self._background_load_timer.timeout.connect(self._background_preload)
+        self._background_load_timer.start(150)
+
+    def _background_preload(self):
+        if self._background_loaded:
+            return
+        self._background_loaded = True
+        first_key = next(iter(self._type_widget_specs.keys()), None)
+        if first_key is None:
+            return
+        self._show_type_widget(first_key, preload=True)
+
+    def _show_type_widget(self, key, preload=False):
+        widget = self._type_widgets.get(key)
+        if widget is None:
+            spec = self._type_widget_specs[key]
+            widget = TypeWidget(
+                self.db,
+                spec["table_name"],
+                spec["model_cls"],
+                spec["columns"],
+                spec["hidden_columns"],
+                self.data_folder,
+                initial_sort_rules=self.initial_sorts.get(spec["table_name"], []),
+            )
+            self._type_widgets[key] = widget
+            self.stack.addWidget(widget)
+
+        if not preload:
+            self.stack.setCurrentWidget(widget)
+
     def on_tab_changed(self):
-        """Rafraîchit l'onglet quand on change de page"""
+        """Rafraîchit l'onglet seulement si ce widget a déjà été chargé."""
         widget = self.stack.currentWidget()
-        widget.refresh()
+        if getattr(widget, "_data_loaded", False) :
+            widget.refresh()
     
     def open_settings(self):
         """Ouvre le dialogue des paramètres"""

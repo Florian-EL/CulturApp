@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QFrame,
     QGroupBox,
 )
+from PyQt5.QtCore import QTimer
 import pandas as pd
 
 from src.view.add_window import AddData
@@ -134,10 +135,11 @@ class TypeWidget(QWidget):
         self.table.setHorizontalHeaderLabels([""] + self.columns)
         self.table.setWordWrap(True)
         self.table.verticalHeader().setVisible(False)
+        self.table.setAlternatingRowColors(True)
         table_layout.addWidget(self.table)
 
-        self._load_data()
-        self.load()
+        self._data_loaded = False
+        self._schedule_initial_load()
 
         # Buttons moved to shared area below tabs
         self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self)
@@ -175,7 +177,8 @@ class TypeWidget(QWidget):
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""
         super().showEvent(event)
-        self.refresh()
+        if not self._data_loaded:
+            self._schedule_initial_load()
         
     def _get_available_fields(self):
         fields = [("Titre", "titre"), ("État", "etat"), ("Note", "note")]
@@ -312,6 +315,17 @@ class TypeWidget(QWidget):
         self.apply_view_options()
         self.refresh()
 
+    def _schedule_initial_load(self):
+        if self._data_loaded:
+            return
+        QTimer.singleShot(0, self._load_initial_data)
+
+    def _load_initial_data(self):
+        if self._data_loaded:
+            return
+        self.refresh()
+        self._data_loaded = True
+
     def _load_data(self):
         self.all_data = [self.calculate(data) for data in self.db.get(self.table_name, self.model_cls)]
         self.data = self.apply_view_options(self.all_data)
@@ -319,7 +333,7 @@ class TypeWidget(QWidget):
     def refresh(self):
         """Rafraîchit les données depuis la base de données"""
         self._load_data()
-        self.table.setRowCount(0)  # Vide le tableau
+        self.table.setRowCount(0)
         self.load()
         # Refresh gallery view as well
         try:
@@ -453,21 +467,22 @@ class TypeWidget(QWidget):
         dialog.accept()
         QMessageBox.information(self, "Succès", f"{len(df)} série(s) importée(s) avec succès !")
     
-    def set_data(self, data) :
-        row = self.table.rowCount()
-        self.table.insertRow(row)
-        for i, col in enumerate(self.columns) :
+    def set_data(self, data, row):
+        for i, col in enumerate(self.columns):
             value = getattr(data, col.lower(), "")
-            self.table.setItem(row, i+1, QTableWidgetItem("" if value is None else str(value)))
-            
+            self.table.setItem(row, i + 1, QTableWidgetItem("" if value is None else str(value)))
+
         edit_button = QPushButton("Edit")
         edit_button.clicked.connect(lambda checked=False, current_data=data: self.open_edit_window(current_data))
         self.table.setCellWidget(row, 0, edit_button)
-        self.table.resizeRowsToContents()
-    
+
     def load(self):
-        for data in self.data:
-            self.set_data(data)
+        self.table.setUpdatesEnabled(False)
+        self.table.setRowCount(len(self.data))
+        for row, data in enumerate(self.data):
+            self.set_data(data, row)
+        self.table.resizeRowsToContents()
+        self.table.setUpdatesEnabled(True)
     
     def add(self, data):
         cal_data = self.calculate(data)

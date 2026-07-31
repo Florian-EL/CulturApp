@@ -4,7 +4,7 @@ from urllib.request import urlretrieve
 
 from dataclasses import fields
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent
 from PyQt5.QtGui import QPixmap
 
 from PyQt5.QtWidgets import (
@@ -77,7 +77,12 @@ class GalleryWidget(QWidget):
         self.grid.setContentsMargins(20, 20, 20, 20)
 
         self.scroll.setWidget(self.container)
-        self.refresh()
+        self.scroll.viewport().installEventFilter(self)
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.timeout.connect(self._apply_refresh)
+        self._pending_items = None
+        self._refresh_requested = False
 
     def find_image(self, title: str):
         
@@ -218,17 +223,40 @@ class GalleryWidget(QWidget):
             if widget is not None:
                 widget.deleteLater()
 
+    def eventFilter(self, source, event):
+        if source is self.scroll.viewport() and event.type() == QEvent.Resize:
+            self._schedule_refresh()
+        return super().eventFilter(source, event)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._schedule_refresh()
+
+    def _apply_refresh(self):
+        self._refresh_requested = False
+        self.refresh(self._pending_items)
+
+    def _schedule_refresh(self, items=None):
+        self._pending_items = items
+        if not self._refresh_requested:
+            self._refresh_requested = True
+            QTimer.singleShot(0, self._schedule_refresh)
+
     def compute_columns(self):
-        viewport_width = self.scroll.viewport().width()
+        viewport_width = self.scroll.viewport().width() or self.width()
+        if viewport_width <= 0:
+            return 1
+
         spacing = self.grid.spacing()
-        cols = max(1, viewport_width // (self.CARD_WIDTH + spacing),)
+        available_width = max(1, viewport_width - 40)
+        cols = max(1, available_width // (self.CARD_WIDTH + spacing))
         return cols
 
     def refresh(self, items=None):
-        self.clear_grid()
-
         if items is not None:
             self.items = list(items)
+
+        self.clear_grid()
 
         if self.items is None:
             try:
@@ -252,7 +280,7 @@ class GalleryWidget(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self.refresh()
+        self._schedule_refresh()
 
     def make_card(self, data):
         title = getattr(data, "titre", "")
