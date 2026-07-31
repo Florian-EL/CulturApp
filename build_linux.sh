@@ -4,7 +4,7 @@ set -e
 
 # === CONFIG ===
 APP_NAME="CulturApp"
-PROJECT_DIR="/home/florian/Documents/Projets/Algo/CulturApp"
+PROJECT_DIR="/home/florian/CulturApp"
 BUILD_DIR="$PROJECT_DIR/build/exe.linux-x86_64-3.13"
 DESKTOP_FILE="$PROJECT_DIR/$APP_NAME.desktop"
 DESKTOP_TARGET="$HOME/.local/share/applications/$APP_NAME.desktop"
