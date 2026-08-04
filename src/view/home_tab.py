@@ -94,13 +94,11 @@ def compute_type_stats(label: str, items: List[Any], avg_minutes_per_ep: int) ->
     unique_work_keys = set(work_keys)
     works_total = len(unique_work_keys) or max(count, 1)
 
-    works_seen = len({
-        _get_work_key(item, label)
-        for item in items
-        if _safe_int(getattr(item, "nb_ep_res", 0)) == 0
-        and _safe_int(getattr(item, "nb_vu", 0)) != 0
-        and _get_work_key(item, label)
-    })
+    works_seen = sum(1 for item in items
+                        if _safe_int(getattr(item, "nb_ep_vu", 0)) > 0
+                        and _get_work_key(item, label) in unique_work_keys)
+    
+    
     works_remaining = max(0, works_total - works_seen)
     percent_e = round(100 * e_vu / e_tot, 1) if e_tot else 0.0
     percent_o = round(100 * works_seen / works_total, 1) if works_total else 0.0

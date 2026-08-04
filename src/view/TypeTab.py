@@ -355,14 +355,14 @@ class TypeWidget(QWidget):
             data.nb_ep_vu = data.ep_act
         
         data.nb_ep_res = int(data.nb_ep_tot) - int(data.nb_ep_vu)
-        data.etat = "FINI" if data.note != "" else "EN COURS"
+        data.etat = "FINI" if int(data.nb_ep_res) == 0 else "EN COURS"
 
         if self.table_name == "serie" :
             nb_saison = 0
             data.nb_ep_tot = 0
             data.nb_ep_vu = 0
             for col in self.columns:
-                if col.endswith("_tot"):
+                if col.endswith("_tot") and col.lower() != "nb_ep_tot":
                     if getattr(data, col.lower(), 0) != "":
                         nb_saison += 1
                         data.nb_ep_tot += int(getattr(data, col.lower(), 0))
