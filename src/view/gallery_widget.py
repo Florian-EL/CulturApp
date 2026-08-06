@@ -481,7 +481,8 @@ class GalleryWidget(QWidget):
 
     def build_detail_content(self, data, dialog=None, scroll=None):
         content = QWidget()
-        content_layout = QVBoxLayout(content)
+        final_layout = QVBoxLayout(content)
+        content_layout = QHBoxLayout()
         content_layout.setContentsMargins(18, 18, 18, 18)
         content_layout.setSpacing(16)
 
@@ -509,7 +510,7 @@ class GalleryWidget(QWidget):
             if not pix.isNull():
                 img = QLabel()
                 img.setAlignment(Qt.AlignCenter)
-                img.setPixmap(pix.scaledToWidth(320, Qt.SmoothTransformation))
+                img.setPixmap(pix.scaledToHeight(600, Qt.SmoothTransformation))
                 header_layout.addWidget(img, alignment=Qt.AlignCenter)
 
         title_lbl = QLabel(title)
@@ -612,7 +613,7 @@ class GalleryWidget(QWidget):
         )
 
         content_layout.addLayout(sections_grid)
-        content_layout.addStretch()
+        # content_layout.addStretch()
 
         buttons = QHBoxLayout()
         edit_btn = QPushButton("Éditer")
@@ -629,11 +630,13 @@ class GalleryWidget(QWidget):
         if dialog is not None:
             close_btn.clicked.connect(dialog.accept)
 
-        buttons.addStretch()
+        # buttons.addStretch()
         buttons.addWidget(edit_btn)
         buttons.addWidget(image_btn)
         buttons.addWidget(close_btn)
-        content_layout.addLayout(buttons)
+        
+        final_layout.addLayout(content_layout)
+        final_layout.addLayout(buttons)
 
         return content
 
@@ -685,6 +688,7 @@ class GalleryWidget(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle(getattr(data, "titre", "Détails"))
         dialog.resize(920, 720)
+        dialog.showMaximized()
         dialog.setStyleSheet("""
         QDialog{
             background:#1f1f1f;
