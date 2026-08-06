@@ -3,9 +3,9 @@ import statistics
 from pathlib import Path
 from typing import List, Dict, Any
 
-from PyQt5.QtCore import Qt, QRect
-from PyQt5.QtGui import QColor, QPainter
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt, QRect
+from PySide6.QtGui import QColor, QPainter
+from PySide6.QtWidgets import (
     QVBoxLayout, QLabel, QGroupBox, QWidget,
     QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView,
     QProgressBar, QSizePolicy, QFrame, QGridLayout
@@ -85,20 +85,23 @@ def compute_type_stats(label: str, items: List[Any], avg_minutes_per_ep: int) ->
     if e_tot <= 0:
         e_tot = max(count, 1)
 
-    work_keys = [
-        _get_work_key(item, label)
-        for item in items
-        if _get_work_key(item, label)
-        and _safe_int(getattr(item, "nb_ep_tot", 0)) != 0
-    ]
+    work_keys = []
+    for item in items:
+        work_key = _get_work_key(item, label)
+        if work_key and _safe_int(getattr(item, "nb_ep_tot", 0)) != 0:
+            work_keys.append(work_key)
+
     unique_work_keys = set(work_keys)
     works_total = len(unique_work_keys) or max(count, 1)
 
-    works_seen = sum(1 for item in items
-                        if _safe_int(getattr(item, "nb_ep_vu", 0)) > 0
-                        and _get_work_key(item, label) in unique_work_keys)
-    
-    
+    seen_work_keys = {
+        _get_work_key(item, label)
+        for item in items
+        if _safe_int(getattr(item, "nb_ep_vu", 0)) > 0
+        and _get_work_key(item, label) in unique_work_keys
+    }
+    works_seen = len(seen_work_keys)
+
     works_remaining = max(0, works_total - works_seen)
     percent_e = round(100 * e_vu / e_tot, 1) if e_tot else 0.0
     percent_o = round(100 * works_seen / works_total, 1) if works_total else 0.0
@@ -373,12 +376,12 @@ class HomeWidget(QWidget):
             "Épisodes\nvus": sum(row["Épisodes\nvus"] for row in rows),
             "Épisodes\nrestants": sum(row["Épisodes\nrestants"] for row in rows),
             "Épisodes\ntotaux": sum(row["Épisodes\ntotaux"] for row in rows),
-            "%\nEpisodes": f"{round(100 * sum(row["Épisodes\nvus"] for row in rows) / sum(row["Épisodes\ntotaux"] for row in rows), 1) if sum(row["Épisodes\ntotaux"] for row in rows) else 0.0:.1f}%",
+            "%\nEpisodes": str(round(100 * sum(row['Épisodes\nvus'] for row in rows) / sum(row['Épisodes\ntotaux'] for row in rows), 1) if sum(row['Épisodes\ntotaux'] for row in rows) else 0.0) + " %",
             "Œuvres\nvues": sum(row["Œuvres\nvues"] for row in rows),
             "Œuvres\nrestantes": sum(row["Œuvres\nrestantes"] for row in rows),
             "Œuvres\ntotales": sum(row["Œuvres\ntotales"] for row in rows),
-            "%\nOeuvres": f"{round(100 * sum(row['Œuvres\nvues'] for row in rows) / sum(row['Œuvres\ntotales'] for row in rows), 1) if sum(row['Œuvres\ntotales'] for row in rows) else 0.0:.1f}%",
-            "Note\nmoy": f"{round(sum(float(row['Note\nmoy']) for row in rows) / len(rows), 2) if rows else 0.0:.2f}",
+            "%\nOeuvres": str(round(100 * sum(row['Œuvres\nvues'] for row in rows) / sum(row['Œuvres\ntotales'] for row in rows), 1) if sum(row['Œuvres\ntotales'] for row in rows) else 0.0) + " %",
+            "Note\nmoy": str(round(sum(float(row['Note\nmoy']) for row in rows) / len(rows), 2) if rows else 0.0),
             "Écart-\ntype": "-",
             "Note\nmin": "-",
             "Note\nmax": "-",

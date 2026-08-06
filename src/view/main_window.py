@@ -1,7 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMenuBar, QLabel, QScrollArea, QWidget, \
-    QGraphicsView, QGraphicsScene, QTableView, QTableWidget, QHeaderView, QTableWidgetItem, QSizePolicy, \
-    QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QFileDialog, QAction
-from PyQt5.QtCore import Qt, QRectF, QTimer
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QWidget, QSizePolicy, \
+    QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QFileDialog
+from PySide6.QtCore import QTimer
 
 from pandas import read_csv
 import json
@@ -106,11 +105,6 @@ class CulturApp(QWidget) :
             },
         }
         
-        menu_bar = QMenuBar()
-        self.layout.setMenuBar(menu_bar)
-        self.menu_widget = menu_bar.addMenu("File")        
-        self.create_import_menu()
-        
         self.stack.addWidget(self.home_widget)
         
         # Rafraîchir les données quand on change d'onglet
@@ -136,13 +130,12 @@ class CulturApp(QWidget) :
             button.clicked.connect(lambda checked=False, key=menu_key: self._show_type_widget(key))
             self.right_menu_layout.addWidget(button)
         
+        
         # Ajouter un bouton Paramètres
         self.right_menu_layout.addStretch()
-        button_settings = QPushButton("Paramètres")
-        button_settings.setStyleSheet("background-color: blue;")
-        button_settings.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        button_settings.clicked.connect(self.open_settings)
-        self.right_menu_layout.addWidget(button_settings)
+        
+        self.create_import_menu()
+        self.create_settings_button()
     
     def _schedule_background_preload(self):
         if self._background_loaded:
@@ -201,10 +194,17 @@ class CulturApp(QWidget) :
     
 
     def create_import_menu(self):
-        action_csv = QAction("Importer CSV", self)
-        action_csv.triggered.connect(self.import_csv)
-        self.menu_widget.addAction(action_csv)
+        action_csv = QPushButton("Importer CSV", self)
+        action_csv.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        action_csv.clicked.connect(self.import_csv)
+        self.right_menu_layout.addWidget(action_csv)
         
+    def create_settings_button(self):
+        button_settings = QPushButton("Paramètres")
+        button_settings.setStyleSheet("background-color: blue;")
+        button_settings.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        button_settings.clicked.connect(self.open_settings)
+        self.right_menu_layout.addWidget(button_settings)
 
     def import_csv(self):
         file_path, _ = QFileDialog.getOpenFileName(

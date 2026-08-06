@@ -4,10 +4,10 @@ from urllib.request import urlretrieve
 
 from dataclasses import fields
 
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QEvent
-from PyQt5.QtGui import QPixmap
+from PySide6.QtCore import Qt, Signal, QTimer, QEvent
+from PySide6.QtGui import QPixmap
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget,
     QLabel,
     QPushButton,
@@ -33,7 +33,7 @@ def sanitize_filename(name: str) -> str:
 
 
 class ClickableLabel(QLabel):
-    clicked = pyqtSignal()
+    clicked = Signal()
 
     def mousePressEvent(self, event):
         try:

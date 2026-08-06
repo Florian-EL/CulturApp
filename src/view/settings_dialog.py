@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QFileDialog, QMessageBox
 )
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 from src.services.config_manager import ConfigManager
 
 

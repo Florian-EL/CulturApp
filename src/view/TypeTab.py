@@ -1,6 +1,6 @@
 from dataclasses import fields
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QFrame,
     QGroupBox,
 )
-from PyQt5.QtCore import QTimer
+from PySide6.QtCore import QTimer
 import pandas as pd
 
 from src.view.add_window import AddData
@@ -397,7 +397,7 @@ class TypeWidget(QWidget):
         elif data.nb_ep_tot > data.nb_ep_vu :
             data.etat = "EN COURS"
         elif data.nb_ep_tot == data.nb_ep_vu :
-            data.etat == "FINI"
+            data.etat = "FINI"
         
         if self.table_name == "manga" : 
             data.nb_ep_vu = int(data.ep_act) - int(data.ep_deb)
