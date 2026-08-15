@@ -386,7 +386,7 @@ class TypeWidget(QWidget):
                 except AttributeError :
                     data.nb_ep_vu = 0 if data.annee_vu == 0 else 1
                 data.nb_ep_tot = data.nb_ep_vu
-                data.nb_vu = data.nb_vu
+                data.nb_vu = data.nb_ep_vu
         
         if self.table_name == "serie_film" :
             data.titre = data.nom_serie + " - " + data.film
