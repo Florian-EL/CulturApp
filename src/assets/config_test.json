@@ -170,17 +170,21 @@
         "order": "asc"
       },
       {
+        "field": "priorite",
+        "order": "asc"
+      },
+      {
         "field": "titre",
         "order": "asc"
       }
     ],
     "roman": [
       {
-        "field": "updated",
+        "field": "etat",
         "order": "asc"
       },
       {
-        "field": "etat",
+        "field": "updated",
         "order": "asc"
       },
       {
@@ -190,11 +194,11 @@
     ],
     "manga": [
       {
-        "field": "updated",
+        "field": "etat",
         "order": "asc"
       },
       {
-        "field": "etat",
+        "field": "updated",
         "order": "asc"
       },
       {

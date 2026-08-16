@@ -354,8 +354,7 @@ class TypeWidget(QWidget):
         if self.table_name == "manga" :
             data.nb_ep_vu = data.ep_act
         
-        data.nb_ep_res = int(data.nb_ep_tot) - int(data.nb_ep_vu)
-        data.etat = "FINI" if int(data.nb_ep_res) == 0 else "EN COURS"
+        data.etat = "FINI" if data.note != "" else "EN COURS"
 
         if self.table_name == "serie" :
             nb_saison = 0
@@ -381,12 +380,11 @@ class TypeWidget(QWidget):
                 data.nb_ep_vu = 0
                 data.nb_vu = 0
             elif data.etat == "FINI" :
-                try :
-                    data.nb_ep_vu = len(data.annee_vu.split(","))
-                except AttributeError :
-                    data.nb_ep_vu = 0 if data.annee_vu == 0 else 1
+                data.nb_ep_vu = len(str(data.annee_vu).split(","))
                 data.nb_ep_tot = data.nb_ep_vu
                 data.nb_vu = data.nb_ep_vu
+        
+        data.nb_ep_res = int(data.nb_ep_tot) - int(data.nb_ep_vu)
         
         if self.table_name == "serie_film" :
             data.titre = data.nom_serie + " - " + data.film

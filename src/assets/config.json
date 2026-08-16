@@ -181,11 +181,11 @@
     ],
     "roman": [
       {
-        "field": "updated",
+        "field": "etat",
         "order": "asc"
       },
       {
-        "field": "etat",
+        "field": "updated",
         "order": "asc"
       },
       {
@@ -195,11 +195,11 @@
     ],
     "manga": [
       {
-        "field": "updated",
+        "field": "etat",
         "order": "asc"
       },
       {
-        "field": "etat",
+        "field": "updated",
         "order": "asc"
       },
       {
