@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton
 
 class AddData(QDialog) :
     def __init__(self, columns, parent=None):

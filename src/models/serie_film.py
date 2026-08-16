@@ -9,7 +9,7 @@ class SerieFilm:
     type      : str = ""
     genre     : str = ""
     vo        : str = ""
-    cinema    : bool = 0
+    cinema    : str = ""
     updated   : str = ""
     etat      : str = ""
     annee_vu  : str = ""

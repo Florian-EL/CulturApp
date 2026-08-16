@@ -530,6 +530,9 @@ class TypeWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
         
+        if self.table_name == "serie_film" :
+            new_data["Titre"] = new_data.get("Nom série", "") + " - " + new_data.get("Film", "")
+        
         if new_data["Titre"] != "" :
             data = self.model_cls()
             for col in self.columns :
