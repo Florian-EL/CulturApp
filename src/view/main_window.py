@@ -159,6 +159,7 @@ class CulturApp(QWidget) :
         widget = self._type_widgets.get(key)
         if widget is None:
             spec = self._type_widget_specs[key]
+            field_options = self.config.get("field_options", {})
             widget = TypeWidget(
                 self.db,
                 spec["table_name"],
@@ -167,6 +168,7 @@ class CulturApp(QWidget) :
                 spec["hidden_columns"],
                 self.data_folder,
                 initial_sort_rules=self.initial_sorts.get(spec["table_name"], []),
+                field_options=field_options,
             )
             self._type_widgets[key] = widget
             self.stack.addWidget(widget)

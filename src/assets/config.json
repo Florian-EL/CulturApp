@@ -275,5 +275,17 @@
       "Etat",
       "nb_ep_res"
     ]
+  },
+  "field_options": {
+    "Type": ["ANIME", "S_F_ANIME", "S_ANIME", "P_MANGA", "MANGA", "WEBTOON", "WATTPAD", 
+    "DOCUMENTAIRE", "S_FILM", "S_DOCUMENTAIRE", "P_MANHWA", "MANHWA","NOCTELLER",
+    "FILM", "S_F_DOCUMENTAIRE", "S_SERIE", "P_ROMAN", "ROMAN", "S_F_CONCERT", "S_KDRAMA",
+    "P_BD", "MANHUA", "P_ROMAN-G", "P_MANHUA"],
+    "Genre": ["BL", "Comedy", "Animation", "Romance", "SF", "Sport", "Horreur", "Guerre",
+    "Historique", "Fantastique", "Voyage", "Réalisme", "Musique", "Slice of Life",
+    "Espionnage", "Art", "Action", "Policier", "Art martiaux", "Post apocalyptique"],
+    "VO": ["FRA", "ENG", "JAP", "CHI", "KOR", "NVG", "THAI", "IND"],
+    "Cinema": ["OUI", "NON"],
+    "Updated": ["EN COURS", "SORTI", "PAS SORTI"]
   }
 }

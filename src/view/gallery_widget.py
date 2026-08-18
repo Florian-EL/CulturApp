@@ -51,7 +51,7 @@ class GalleryWidget(QWidget):
     IMAGE_WIDTH = 160
     IMAGE_HEIGHT = 240
 
-    def __init__(self, db, table_name, model_cls, columns, data_folder: Path, parent=None):
+    def __init__(self, db, table_name, model_cls, columns, data_folder: Path, parent=None, field_options=None):
         super().__init__(parent)
         self.parent = parent
         self.items = None
@@ -61,6 +61,7 @@ class GalleryWidget(QWidget):
         self.model_cls = model_cls
         self.columns = columns
         self.data_folder = Path(data_folder) if data_folder else Path(".")
+        self.field_options = field_options or {}
 
         main_layout = QVBoxLayout(self)
 
@@ -648,7 +649,7 @@ class GalleryWidget(QWidget):
     def open_edit_window(self, data, detail_dialog=None, detail_scroll=None):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
-        dialog = EditData(self.parent.get_addable_columns(), values=values, field_types=field_types, parent=self)
+        dialog = EditData(self.parent.get_addable_columns(), values=values, field_types=field_types, content_type=self.table_name, field_options=self.field_options, parent=self)
 
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()

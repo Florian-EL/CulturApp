@@ -1,14 +1,16 @@
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QLabel, QWidget, QGridLayout, QScrollArea
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QHBoxLayout, QLabel, QWidget, QGridLayout, QScrollArea, QComboBox
 
 
 class EditData(QDialog):
-    def __init__(self, columns, values=None, field_types=None, parent=None):
+    def __init__(self, columns, values=None, field_types=None, content_type=None, field_options=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Edit Data")
         self.layout = QVBoxLayout(self)
 
         self.columns = columns
         self.inputs = {}
+        self.content_type = content_type
+        self.field_options = field_options or {}
 
         field_count = len(self.columns)
         max_rows = 10
@@ -29,13 +31,33 @@ class EditData(QDialog):
             label.setStyleSheet("font-weight: bold;")
             label.setFixedWidth(140)
 
-            input_field = QLineEdit()
-            input_field.setPlaceholderText(col)
-            input_field.setMaxLength(512)
-            input_field.setFixedWidth(128)
-            input_field.setFixedHeight(28)
-            if values is not None:
-                input_field.setText(str(values.get(col, "")))
+            # Check if this field has dropdown options
+            col_options = self.field_options.get(col, [])
+            
+            if col_options:
+                # Use ComboBox for fields with options
+                input_field = QComboBox()
+                input_field.addItem("")  # Add empty option
+                input_field.addItems(col_options)
+                
+                # Set current value if provided
+                if values is not None:
+                    current_value = str(values.get(col, ""))
+                    index = input_field.findText(current_value)
+                    if index >= 0:
+                        input_field.setCurrentIndex(index)
+                
+                input_field.setFixedWidth(128)
+            else:
+                # Use LineEdit for regular text fields
+                input_field = QLineEdit()
+                input_field.setPlaceholderText(col)
+                input_field.setMaxLength(512)
+                input_field.setFixedWidth(128)
+                input_field.setFixedHeight(28)
+                if values is not None:
+                    input_field.setText(str(values.get(col, "")))
+            
             self.inputs[col] = input_field
 
             grid_layout.addWidget(label, row_index, col_index * 2)
@@ -71,7 +93,10 @@ class EditData(QDialog):
         data = {}
         for col in self.columns:
             widget = self.inputs.get(col)
-            data[col] = widget.text()
+            if isinstance(widget, QComboBox):
+                data[col] = widget.currentText()
+            else:
+                data[col] = widget.text()
         return data
 
     def get_casted_data(self):

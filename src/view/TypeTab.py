@@ -29,7 +29,7 @@ from pathlib import Path
 
 
 class TypeWidget(QWidget):
-    def __init__(self, db, table_name, model_cls, columns, hidden_columns, data_folder, initial_sort_rules=None):
+    def __init__(self, db, table_name, model_cls, columns, hidden_columns, data_folder, initial_sort_rules=None, field_options=None):
         super().__init__()
         
         self.db = db
@@ -39,6 +39,7 @@ class TypeWidget(QWidget):
         self.hidden_columns = hidden_columns
         self.data_folder = data_folder
         self.initial_sort_rules = initial_sort_rules or []
+        self.field_options = field_options or {}
 
         layout = QHBoxLayout(self)
         layout.setSpacing(12)
@@ -142,7 +143,7 @@ class TypeWidget(QWidget):
         self._schedule_initial_load()
 
         # Buttons moved to shared area below tabs
-        self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self)
+        self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self, field_options=self.field_options)
         self.tab_widget.addTab(self.gallery, "Gallery")
         self.tab_widget.addTab(table_page, "Table")
 
@@ -490,7 +491,7 @@ class TypeWidget(QWidget):
     def open_edit_window(self, data):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
-        dialog = EditData(self.get_addable_columns(), values=values, field_types=field_types, parent=self)
+        dialog = EditData(self.get_addable_columns(), values=values, field_types=field_types, content_type=self.table_name, field_options=self.field_options, parent=self)
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()
             # Handle title change: rename image file if present
@@ -526,7 +527,7 @@ class TypeWidget(QWidget):
 
     def open_add_window(self) :
         addable_columns = self.get_addable_columns()
-        add_window = AddData(addable_columns)
+        add_window = AddData(addable_columns, content_type=self.table_name, field_options=self.field_options)
         add_window.exec_()
         new_data = add_window.get_data()
         
