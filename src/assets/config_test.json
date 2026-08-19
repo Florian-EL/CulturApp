@@ -284,6 +284,6 @@
     "Espionnage", "Art", "Action", "Policier", "Art martiaux", "Post apocalyptique"],
     "VO": ["FRA", "ENG", "JAP", "CHI", "KOR", "NVG", "THAI", "IND"],
     "Cinema": ["OUI", "NON"],
-    "Updated": ["EN COURS", "SORTI", "PAS SORTI"]
+    "Updated": ["EN COURS", "FINI", "PAS SORTI"]
   }
 }
