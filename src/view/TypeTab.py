@@ -463,6 +463,7 @@ class TypeWidget(QWidget):
             self.db.add(self.table_name, data)
         
         self.refresh()
+        self.parent().home_widget.refresh()
         dialog.accept()
         QMessageBox.information(self, "Succès", f"{len(df)} série(s) importée(s) avec succès !")
     
@@ -540,6 +541,7 @@ class TypeWidget(QWidget):
                 setattr(data, col.lower(), new_data.get(col, 0))
             
             self.add(data)
+        self.parent().home_widget.refresh()
     
     def open_del_window(self) :
         del_window = DelData()
@@ -549,3 +551,4 @@ class TypeWidget(QWidget):
         self.db.delete(self.table_name, self.model_cls(id=int(data)))
         
         self.refresh()
+        self.parent().home_widget.refresh()
