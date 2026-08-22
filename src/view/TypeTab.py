@@ -402,7 +402,7 @@ class TypeWidget(QWidget):
             data.nb_ep_vu = int(data.ep_act) - int(data.ep_deb)
             data.nb_ep_res = int(data.nb_ep_tot) - int(data.ep_act)
         
-        
+        self.db.update(self.table_name, data)
         return data
     
     def add_import(self, df: pd.DataFrame) :
