@@ -1,31 +1,30 @@
 from dataclasses import fields
+from pathlib import Path
 
+import pandas as pd
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QTableWidget,
-    QTableWidgetItem,
-    QPushButton,
-    QSizePolicy,
-    QDialog,
-    QLabel,
-    QMessageBox,
-    QTabWidget,
-    QLineEdit,
     QComboBox,
-    QHeaderView,
+    QDialog,
     QFrame,
     QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import QTimer
-import pandas as pd
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 from src.view.edit_window import EditData
 from src.view.gallery_widget import GalleryWidget, sanitize_filename
-from pathlib import Path
 
 
 class TypeWidget(QWidget):
