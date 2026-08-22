@@ -135,7 +135,7 @@
     "film": [
       {
         "field": "updated",
-        "order": "asc"
+        "order": "desc"
       },
       {
         "field": "etat",
@@ -149,7 +149,7 @@
     "serie_film": [
       {
         "field": "updated",
-        "order": "asc"
+        "order": "desc"
       },
       {
         "field": "etat",
