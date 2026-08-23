@@ -98,6 +98,7 @@ def compute_type_stats(label: str, items: List[Any], avg_minutes_per_ep: int) ->
         _get_work_key(item, label)
         for item in items
         if _safe_int(getattr(item, "nb_ep_vu", 0)) > 0
+        and _safe_int(getattr(item, "nb_ep_res", 0)) == 0
         and _get_work_key(item, label) in unique_work_keys
     }
     works_seen = len(seen_work_keys)
