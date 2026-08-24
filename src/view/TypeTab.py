@@ -2,7 +2,9 @@ from dataclasses import fields
 from pathlib import Path
 
 import pandas as pd
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import (
+    QTimer,
+)
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -138,9 +140,6 @@ class TypeWidget(QWidget):
         self.table.setAlternatingRowColors(True)
         table_layout.addWidget(self.table)
 
-        self._data_loaded = False
-        self._schedule_initial_load()
-
         # Buttons moved to shared area below tabs
         self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self, field_options=self.field_options)
         self.tab_widget.addTab(self.gallery, "Gallery")
@@ -173,6 +172,9 @@ class TypeWidget(QWidget):
         shared_buttons.addWidget(add_button)
         shared_buttons.addWidget(del_button)
         main_content_layout.addLayout(shared_buttons)
+        
+        self._data_loaded = False
+        self._schedule_initial_load()
     
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""

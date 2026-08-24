@@ -2,6 +2,7 @@ from pathlib import Path
 
 from PySide6.QtCore import (
     QEasingCurve,
+    QPropertyAnimation,
     Qt,
     QTimer,
     QVariantAnimation,
@@ -36,70 +37,354 @@ from src.models.webtoon import Webtoon
 
 
 class WorkPreview(QFrame):
-    """Floating preview displayed when hovering a book spine."""
+    """
+    Jaquette agrandie affichée directement dans l'étagère.
+
+    Ce n'est plus une fenêtre flottante :
+    le widget est enfant de la rangée de livres et se place
+    exactement au-dessus de la tranche survolée.
+    """
 
     def __init__(self, work, image_path, parent=None):
         super().__init__(parent)
-        self.setWindowFlags(Qt.ToolTip | Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_ShowWithoutActivating)
+
+        self.work = work
+        self.image_path = image_path
+
+        self.cover_width = 120
+        self.cover_height = 165
+
+        self.setFixedSize(self.cover_width, self.cover_height)
+
         self.setStyleSheet("""
             QFrame {
                 background: #202020;
                 border: 1px solid #555555;
-                border-radius: 10px;
+                border-radius: 3px;
             }
+        """)
+
+        self.cover = QLabel(self)
+        self.cover.setAlignment(Qt.AlignCenter)
+        self.cover.setGeometry(4, 4, self.cover_width - 8, self.cover_height - 8)
+
+        self.cover.setStyleSheet("""
             QLabel {
+                background: #303030;
                 border: none;
             }
         """)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
+        self._update_cover()
 
-        cover = QLabel()
-        cover.setFixedSize(120, 175)
-        cover.setAlignment(Qt.AlignCenter)
-        pixmap = QPixmap(str(image_path)) if image_path else QPixmap()
-        if not pixmap.isNull():
-            cover.setPixmap(
-                pixmap.scaled(cover.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    def _update_cover(self):
+        if not self.image_path:
+            self.cover.setText("Pas de\ncouverture")
+            self.cover.setStyleSheet("""
+                QLabel {
+                    background: #303030;
+                    color: #777777;
+                    border: none;
+                }
+            """)
+            return
+
+        pixmap = QPixmap(str(self.image_path))
+
+        if pixmap.isNull():
+            self.cover.setText("Pas de\ncouverture")
+            return
+
+        scaled = pixmap.scaled(
+            self.cover.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+
+        self.cover.setPixmap(scaled)
+
+class BookSpine(QFrame):
+    """Book spine that expands to reveal its full cover and metadata."""
+
+    def __init__(self, work, image_path, parent=None):
+        super().__init__(parent)
+
+        self.work = work
+        self.image_path = image_path
+
+        # ---------------------------------------------------------
+        # Dimensions
+        # ---------------------------------------------------------
+
+        self.normal_width = 38
+        self.expanded_width = 170
+
+        self.book_height = 210
+        self.info_height = 62
+
+        self.setFixedSize(self.normal_width, self.book_height)
+
+        self.setCursor(Qt.PointingHandCursor)
+        self.setToolTip(str(work.titre))
+
+        # ---------------------------------------------------------
+        # Style
+        # ---------------------------------------------------------
+
+        self.setStyleSheet("""
+            QFrame {
+                background: #303030;
+                border: 1px solid #444444;
+                border-radius: 3px;
+            }
+        """)
+
+        # ---------------------------------------------------------
+        # Main layout
+        # ---------------------------------------------------------
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setSpacing(3)
+
+        self.layout = layout
+
+        # ---------------------------------------------------------
+        # Title - normal view
+        # ---------------------------------------------------------
+
+        self.title_label = RotatedLabel(str(self.work.titre))
+
+        self.title_label.setWordWrap(True)
+
+        self.title_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                background: transparent;
+                border: none;
+                font-size: 8pt;
+                font-weight: bold;
+            }
+        """)
+
+        layout.addWidget(self.title_label)
+
+        # ---------------------------------------------------------
+        # Cover
+        # ---------------------------------------------------------
+
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignCenter)
+
+        self.image_label.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding
+        )
+
+        self.image_label.setStyleSheet("""
+            QLabel {
+                background: transparent;
+                border: none;
+            }
+        """)
+
+        layout.addWidget(self.image_label, 1)
+
+        # ---------------------------------------------------------
+        # Metadata - expanded view
+        # ---------------------------------------------------------
+
+        self.info_label = QLabel()
+
+        self.info_label.setFixedHeight(self.info_height)
+        self.info_label.setWordWrap(True)
+        self.info_label.setAlignment(
+            Qt.AlignLeft | Qt.AlignTop
+        )
+
+        self.info_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                background: #252525;
+                border: none;
+                padding: 4px;
+                font-size: 8pt;
+            }
+        """)
+
+        self.info_label.setText(self._metadata_text())
+
+        layout.addWidget(self.info_label)
+
+        # Hidden in normal state
+        self.info_label.hide()
+
+        # ---------------------------------------------------------
+        # Image
+        # ---------------------------------------------------------
+
+        self._update_image()
+
+        # ---------------------------------------------------------
+        # Animation
+        # ---------------------------------------------------------
+
+        self.animation = QPropertyAnimation(
+            self,
+            b"minimumWidth"
+        )
+
+        self.animation.setDuration(180)
+        self.animation.setEasingCurve(
+            QEasingCurve.OutCubic
+        )
+
+        self.animation.valueChanged.connect(
+            self._animation_width_changed
+        )
+
+    # =============================================================
+    # Events
+    # =============================================================
+
+    def enterEvent(self, event):
+        self._expand()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._collapse()
+        super().leaveEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_image()
+
+    # =============================================================
+    # Expand / collapse
+    # =============================================================
+
+    def _expand(self):
+
+        self.animation.stop()
+
+        # Le titre vertical disparaît
+        self.title_label.hide()
+
+        # Le texte devient un vrai élément
+        # du layout et prend donc sa place.
+        self.info_label.show()
+
+        self.animation.setStartValue(self.width())
+        self.animation.setEndValue(self.expanded_width)
+
+        self.animation.start()
+
+    def _collapse(self):
+
+        self.animation.stop()
+
+        # Retire le bloc d'informations
+        self.info_label.hide()
+
+        # Rend le titre vertical
+        self.title_label.show()
+
+        self.animation.setStartValue(self.width())
+        self.animation.setEndValue(self.normal_width)
+
+        self.animation.start()
+
+    def _animation_width_changed(self, width):
+
+        self.setFixedWidth(int(width))
+
+        # Force le parent à recalculer
+        # la position des livres voisins.
+        if self.parentWidget():
+            self.parentWidget().updateGeometry()
+
+        self._update_image()
+
+    # =============================================================
+    # Metadata
+    # =============================================================
+
+    def _metadata_text(self):
+
+        lines = [
+            f"<b>{self.work.titre}</b>"
+        ]
+
+        note = getattr(self.work, "note", None)
+
+        if note not in (
+            None, "", 0, "0", 0.0, "0.0"
+        ):
+            lines.append(
+                f"Note : {note}/10"
             )
-        else:
-            cover.setText("Pas de\ncouverture")
-            cover.setStyleSheet("background: #303030; color: #777777; border-radius: 5px;")
-        layout.addWidget(cover)
 
-        info = QVBoxLayout()
-        info.setSpacing(5)
+        author = getattr(
+            self.work,
+            "auteur",
+            ""
+        )
 
-        title = QLabel(str(work.titre))
-        title.setWordWrap(True)
-        title.setStyleSheet("font-size: 16px; font-weight: bold;")
-        info.addWidget(title)
-
-        author = getattr(work, "auteur", "") or getattr(work, "vo", "")
         if author:
-            label = QLabel(str(author))
-            label.setStyleSheet("color: #aaaaaa; font-size: 12px;")
-            label.setWordWrap(True)
-            info.addWidget(label)
+            lines.append(
+                f"Auteur : {author}"
+            )
 
-        metadata = []
-        for field in ("genre", "type", "etat"):
-            value = getattr(work, field, "")
-            if value:
-                metadata.append(str(value))
-        if metadata:
-            details = QLabel(" • ".join(metadata))
-            details.setWordWrap(True)
-            details.setStyleSheet("color: #888888; font-size: 11px;")
-            info.addWidget(details)
+        total_episodes = getattr(
+            self.work,
+            "nb_ep_tot",
+            None
+        )
 
-        info.addStretch()
-        layout.addLayout(info)
-        self.adjustSize()
+        if total_episodes not in (
+            None, "", 0, "0"
+        ):
+            lines.append(
+                f"Episodes : {total_episodes}"
+            )
 
+        return "<br>".join(lines)
+
+    # =============================================================
+    # Image
+    # =============================================================
+
+    def _update_image(self):
+
+        if not self.image_path:
+            self.image_label.clear()
+            return
+
+        pixmap = QPixmap(str(self.image_path))
+
+        if pixmap.isNull():
+            self.image_label.clear()
+            return
+
+        # ---------------------------------------------------------
+        # Normal view
+        # ---------------------------------------------------------
+
+        if self.width() <= self.normal_width:
+            pixmap = pixmap.transformed(
+                QTransform().rotate(-90),
+                Qt.SmoothTransformation
+            )
+
+        # ---------------------------------------------------------
+        # Expanded view
+        # ---------------------------------------------------------
+
+        scaled = pixmap.scaled(
+            self.image_label.size(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+
+        self.image_label.setPixmap(scaled)
 
 class RotatedLabel(QLabel):
     def __init__(self, text="", parent=None):
@@ -128,202 +413,6 @@ class RotatedLabel(QLabel):
             Qt.AlignLeft | Qt.TextWordWrap,
             self.text(),
         )
-
-
-class BookSpine(QFrame):
-    """Small book seen from the side, with a floating preview on hover."""
-
-    def __init__(self, work, image_path, parent=None):
-        super().__init__(parent)
-
-        self.work = work
-        self.image_path = image_path
-        self.preview = None
-
-        self.hide_timer = QTimer(self)
-        self.hide_timer.setSingleShot(True)
-        self.hide_timer.timeout.connect(self._hide_preview)
-
-        # ---------------------------------------------------------
-        # Box
-        # ---------------------------------------------------------
-
-        self.setFixedSize(38, 155)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip(str(work.titre))
-
-        self.setStyleSheet("""
-            QFrame {
-                background: #303030;
-                border: 1px solid #444444;
-                border-radius: 3px;
-            }
-
-            QFrame:hover {
-                background: #3b3b3b;
-                border: 1px solid #777777;
-            }
-        """)
-
-        # ---------------------------------------------------------
-        # Layout
-        # ---------------------------------------------------------
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(3, 3, 3, 3)
-        layout.setSpacing(2)
-
-        # ---------------------------------------------------------
-        # Title
-        # ---------------------------------------------------------
-
-        self.title_label = RotatedLabel(str(self.work.titre))
-        self.title_label.setWordWrap(True)
-
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: white;
-                background: transparent;
-                border: none;
-                font-size: 8pt;
-                font-weight: bold;
-            }
-        """)
-
-        layout.addWidget(self.title_label)
-        
-        # ---------------------------------------------------------
-        # Image
-        # ---------------------------------------------------------
-
-        self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignBottom)
-        self.image_label.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding,
-        )
-
-        self.image_label.setStyleSheet("""
-            QLabel {
-                background: transparent;
-                border: none;
-            }
-        """)
-
-        layout.addWidget(self.image_label)
-
-
-        # Initial rendering
-        self._update_image()
-
-    # =============================================================
-    # Events
-    # =============================================================
-
-    def enterEvent(self, event):
-        self.hide_timer.stop()
-        self._show_preview()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        self.hide_timer.start(180)
-        super().leaveEvent(event)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self._show_preview()
-
-        super().mousePressEvent(event)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._update_image()
-
-    # =============================================================
-    # Image
-    # =============================================================
-
-    def _update_image(self):
-        if not self.image_path:
-            self.image_label.clear()
-            return
-
-        pixmap = QPixmap(str(self.image_path))
-
-        if pixmap.isNull():
-            self.image_label.clear()
-            return
-
-        # Rotate the cover so that it follows
-        # the orientation of the book spine.
-        pixmap = pixmap.transformed(
-            QTransform().rotate(-90),
-            Qt.SmoothTransformation,
-        )
-
-        # Scale according to the actual QLabel size.
-        scaled = pixmap.scaled(
-            self.image_label.size(),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation,
-        )
-
-        self.image_label.setPixmap(scaled)
-
-    # =============================================================
-    # Preview
-    # =============================================================
-
-    def _show_preview(self):
-        if self.preview is None:
-            self.preview = WorkPreview(
-                self.work,
-                self.image_path,
-            )
-
-        self.preview.adjustSize()
-
-        cursor = QCursor.pos()
-
-        screen = QApplication.screenAt(cursor)
-
-        if screen is None:
-            screen = QApplication.primaryScreen()
-
-        available = screen.availableGeometry()
-
-        # Default position:
-        # right of the cursor and slightly above it.
-        x = cursor.x() + 18
-        y = cursor.y() - self.preview.height() - 10
-
-        # If it doesn't fit on the right,
-        # put it on the left.
-        if x + self.preview.width() > available.right():
-            x = cursor.x() - self.preview.width() - 18
-
-        # If it doesn't fit above,
-        # put it below the cursor.
-        if y < available.top():
-            y = cursor.y() + 18
-
-        # Keep the preview inside the screen vertically.
-        if y + self.preview.height() > available.bottom():
-            y = available.bottom() - self.preview.height()
-
-        self.preview.move(x, y)
-        self.preview.show()
-        self.preview.raise_()
-
-    def _hide_preview(self):
-        if (
-            self.preview is not None
-            and not self.preview.underMouse()
-        ):
-            self.preview.hide()
-
-
-
 
 
 class RoomCarousel(QGraphicsView):
@@ -373,22 +462,13 @@ class RoomCarousel(QGraphicsView):
 
         self.setFrameShape(QGraphicsView.NoFrame)
 
-        self.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarAlwaysOff
-        )
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        self.setVerticalScrollBarPolicy(
-            Qt.ScrollBarAlwaysOff
-        )
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        self.setRenderHints(
-            QPainter.Antialiasing |
-            QPainter.SmoothPixmapTransform
-        )
+        self.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
 
-        self.setAlignment(
-            Qt.AlignCenter
-        )
+        self.setAlignment(Qt.AlignCenter)
 
         self.setStyleSheet(
             """
@@ -400,12 +480,7 @@ class RoomCarousel(QGraphicsView):
         )
 
         # La scène occupe toute la zone visible.
-        self.scene.setSceneRect(
-            0,
-            0,
-            self.viewport().width(),
-            self.viewport().height()
-        )
+        self.scene.setSceneRect(0, 0, self.viewport().width(), self.viewport().height())
 
     # ------------------------------------------------------------------
     # Creation
@@ -414,15 +489,12 @@ class RoomCarousel(QGraphicsView):
     def _create_items(self):
 
         for widget in self.widgets:
-
             proxy = QGraphicsProxyWidget()
             proxy.setWidget(widget)
 
             # Le centre de transformation est le centre
             # du widget : indispensable pour le scale.
-            proxy.setTransformOriginPoint(
-                proxy.boundingRect().center()
-            )
+            proxy.setTransformOriginPoint(proxy.boundingRect().center())
 
             self.scene.addItem(proxy)
             self.items.append(proxy)
@@ -476,7 +548,6 @@ class RoomCarousel(QGraphicsView):
         center_y = viewport_height / 2
 
         for index, item in enumerate(self.items):
-
             relative = self._circular_distance(index)
             distance = abs(relative)
 
@@ -486,35 +557,19 @@ class RoomCarousel(QGraphicsView):
 
             # 1 au centre
             # 0 sur les côtés
-            importance = max(
-                0.0,
-                1.0 - distance / 3.0
-            )
+            importance = max(0.0, 1.0 - distance / 3.0)
 
-            scale = (
-                self.min_scale
-                + (
-                    self.max_scale
-                    - self.min_scale
-                ) * importance
-            )
+            scale = self.min_scale + (self.max_scale - self.min_scale) * importance
 
             opacity = (
-                self.min_opacity
-                + (
-                    self.max_opacity
-                    - self.min_opacity
-                ) * importance
+                self.min_opacity + (self.max_opacity - self.min_opacity) * importance
             )
 
             # ----------------------------------------------------------
             # Position horizontale
             # ----------------------------------------------------------
 
-            x = (
-                center_x
-                + relative * self.spacing
-            )
+            x = center_x + relative * self.spacing
 
             y = center_y
 
@@ -532,17 +587,12 @@ class RoomCarousel(QGraphicsView):
             item.setOpacity(opacity)
             item.setRotation(rotation)
 
-            item.setZValue(
-                1000 - distance
-            )
+            item.setZValue(1000 - distance)
 
             # Le widget est centré sur sa position.
             rect = item.boundingRect()
 
-            item.setPos(
-                x - rect.width() / 2,
-                y - rect.height() / 2
-            )
+            item.setPos(x - rect.width() / 2, y - rect.height() / 2)
 
     # ------------------------------------------------------------------
     # Navigation
@@ -565,9 +615,7 @@ class RoomCarousel(QGraphicsView):
         else:
             direction = -1
 
-        target = round(
-            self.offset
-        ) + direction
+        target = round(self.offset) + direction
 
         self._animate_to(target)
 
@@ -600,17 +648,11 @@ class RoomCarousel(QGraphicsView):
 
         animation.setDuration(400)
 
-        animation.setEasingCurve(
-            QEasingCurve.OutCubic
-        )
+        animation.setEasingCurve(QEasingCurve.OutCubic)
 
-        animation.valueChanged.connect(
-            self._animation_value_changed
-        )
+        animation.valueChanged.connect(self._animation_value_changed)
 
-        animation.finished.connect(
-            self._animation_finished
-        )
+        animation.finished.connect(self._animation_finished)
 
         self.animation = animation
         animation.start()
@@ -630,17 +672,11 @@ class RoomCarousel(QGraphicsView):
 
         # --------------------------------------------------------------
         # On remet offset dans une plage raisonnable.
-        #
         # Exemple :
-        #
         # A B C D E
-        #
         # offset = 5
-        #
         # devient :
-        #
         # offset = 0
-        #
         # Visuellement rien ne change.
         # --------------------------------------------------------------
 
@@ -658,12 +694,7 @@ class RoomCarousel(QGraphicsView):
 
         super().resizeEvent(event)
 
-        self.scene.setSceneRect(
-            0,
-            0,
-            self.viewport().width(),
-            self.viewport().height()
-        )
+        self.scene.setSceneRect(0, 0, self.viewport().width(), self.viewport().height())
 
         self._update_positions()
 
@@ -672,6 +703,7 @@ class LibraryWidgets(QWidget):
     def __init__(self, db, data_folder=None):
         super().__init__()
         self.db = db
+        self._data_loaded = False
         self.data_folder = Path(data_folder).expanduser() if data_folder else Path(".")
         self.setMinimumSize(800, 600)
         self.rooms = {
@@ -685,7 +717,23 @@ class LibraryWidgets(QWidget):
         }
         self.room_widgets = {}
         self._build_ui()
+        # self._schedule_initial_load()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._data_loaded:
+            self._schedule_initial_load()
+
+    def _schedule_initial_load(self):
+        if self._data_loaded:
+            return
+        QTimer.singleShot(100, self._load_initial_data)
+
+    def _load_initial_data(self):
+        if self._data_loaded:
+            return
         self.refresh()
+        self._data_loaded = True
 
     # ================================================================
     # UI
@@ -715,17 +763,11 @@ class LibraryWidgets(QWidget):
         widget = QWidget()
 
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(
-            0,
-            40,
-            0,
-            40
-        )
+        layout.setContentsMargins(0, 40, 0, 40)
 
         previews = []
 
         for room_type, room_info in self.rooms.items():
-
             title, _, _ = room_info
 
             preview = self._create_room_preview(
@@ -736,10 +778,7 @@ class LibraryWidgets(QWidget):
 
             previews.append(preview)
 
-        carousel = RoomCarousel(
-            previews,
-            widget
-        )
+        carousel = RoomCarousel(previews, widget)
 
         layout.addWidget(carousel)
 
@@ -873,8 +912,8 @@ class LibraryWidgets(QWidget):
         scroll.setWidgetResizable(True)
         widget.container = QWidget()
         widget.grid = QVBoxLayout(widget.container)
-        widget.grid.setContentsMargins(30, 30, 30, 30)
-        widget.grid.setSpacing(28)
+        widget.grid.setContentsMargins(10, 10, 10, 10)
+        widget.grid.setSpacing(20)
         scroll.setWidget(widget.container)
         layout.addWidget(scroll)
         # ------------------------------------------------------------
@@ -915,20 +954,8 @@ class LibraryWidgets(QWidget):
     def _update_room_filters(self, room_type):
         widget = self.room_widgets[room_type]
         works = self._get_room_data(room_type)
-        types = sorted(
-            {
-                str(work.type)
-                for work in works
-                if work.type
-            }
-        )
-        genres = sorted(
-            {
-                str(work.genre)
-                for work in works
-                if work.genre
-            }
-        )
+        types = sorted({str(work.type) for work in works if work.type})
+        genres = sorted({str(work.genre) for work in works if work.genre})
         widget.type_filter.blockSignals(True)
         widget.genre_filter.blockSignals(True)
         widget.type_filter.clear()
@@ -957,10 +984,7 @@ class LibraryWidgets(QWidget):
             ).lower()
             if query and query not in searchable:
                 continue
-            if (
-                selected_type != "Tous les types"
-                and str(work.type) != selected_type
-            ):
+            if selected_type != "Tous les types" and str(work.type) != selected_type:
                 continue
             if (
                 selected_genre != "Tous les genres"
@@ -1000,7 +1024,7 @@ class LibraryWidgets(QWidget):
             books_layout.setSpacing(7)
             books_layout.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
 
-            for work in works[start:start + books_per_row]:
+            for work in works[start : start + books_per_row]:
                 spine = self._create_work_spine(work)
                 books_layout.addWidget(spine, alignment=Qt.AlignBottom)
 
