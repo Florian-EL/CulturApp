@@ -1,7 +1,7 @@
-from pathlib import Path
 import sqlite3
 
 from dataclasses import asdict, fields, is_dataclass
+from pathlib import Path
 
 from src.models.film import Film
 from src.models.serie_film import SerieFilm
@@ -12,6 +12,21 @@ from src.models.webtoon import Webtoon
 from src.models.wattpad import Wattpad
 
 from src.utils import MediaType
+
+
+def load_tables_for_display(db_path, table_names, result_queue):
+    """Read library tables in a process that has no Qt or UI state."""
+    connection = sqlite3.connect(db_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        result_queue.put({
+            table_name: [dict(row) for row in connection.execute(
+                f"SELECT * FROM {table_name} ORDER BY titre"
+            )]
+            for table_name in table_names
+        })
+    finally:
+        connection.close()
 
 
 class DatabaseManager:

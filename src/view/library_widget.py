@@ -1,4 +1,7 @@
+import multiprocessing
+import random
 from pathlib import Path
+from queue import Empty
 
 from PySide6.QtCore import (
     QEasingCurve,
@@ -7,9 +10,8 @@ from PySide6.QtCore import (
     QTimer,
     QVariantAnimation,
 )
-from PySide6.QtGui import QCursor, QPainter, QPixmap, QTransform
+from PySide6.QtGui import QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import (
-    QApplication,
     QComboBox,
     QFrame,
     QGraphicsProxyWidget,
@@ -34,72 +36,8 @@ from src.models.serie import Serie
 from src.models.serie_film import SerieFilm
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
+from src.services.database_manager import load_tables_for_display
 
-
-class WorkPreview(QFrame):
-    """
-    Jaquette agrandie affichée directement dans l'étagère.
-
-    Ce n'est plus une fenêtre flottante :
-    le widget est enfant de la rangée de livres et se place
-    exactement au-dessus de la tranche survolée.
-    """
-
-    def __init__(self, work, image_path, parent=None):
-        super().__init__(parent)
-
-        self.work = work
-        self.image_path = image_path
-
-        self.cover_width = 120
-        self.cover_height = 165
-
-        self.setFixedSize(self.cover_width, self.cover_height)
-
-        self.setStyleSheet("""
-            QFrame {
-                background: #202020;
-                border: 1px solid #555555;
-                border-radius: 3px;
-            }
-        """)
-
-        self.cover = QLabel(self)
-        self.cover.setAlignment(Qt.AlignCenter)
-        self.cover.setGeometry(4, 4, self.cover_width - 8, self.cover_height - 8)
-
-        self.cover.setStyleSheet("""
-            QLabel {
-                background: #303030;
-                border: none;
-            }
-        """)
-
-        self._update_cover()
-
-    def _update_cover(self):
-        if not self.image_path:
-            self.cover.setText("Pas de\ncouverture")
-            self.cover.setStyleSheet("""
-                QLabel {
-                    background: #303030;
-                    color: #777777;
-                    border: none;
-                }
-            """)
-            return
-
-        pixmap = QPixmap(str(self.image_path))
-
-        if pixmap.isNull():
-            self.cover.setText("Pas de\ncouverture")
-            return
-
-        scaled = pixmap.scaled(
-            self.cover.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-
-        self.cover.setPixmap(scaled)
 
 class BookSpine(QFrame):
     """Book spine that expands to reveal its full cover and metadata."""
@@ -115,10 +53,10 @@ class BookSpine(QFrame):
         # ---------------------------------------------------------
 
         self.normal_width = 38
-        self.expanded_width = 170
+        self.expanded_width = 100
 
-        self.book_height = 210
-        self.info_height = 62
+        self.book_height = 202
+        self.info_height = 70
 
         self.setFixedSize(self.normal_width, self.book_height)
 
@@ -174,10 +112,7 @@ class BookSpine(QFrame):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
 
-        self.image_label.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding
-        )
+        self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.image_label.setStyleSheet("""
             QLabel {
@@ -196,9 +131,7 @@ class BookSpine(QFrame):
 
         self.info_label.setFixedHeight(self.info_height)
         self.info_label.setWordWrap(True)
-        self.info_label.setAlignment(
-            Qt.AlignLeft | Qt.AlignTop
-        )
+        self.info_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         self.info_label.setStyleSheet("""
             QLabel {
@@ -227,19 +160,12 @@ class BookSpine(QFrame):
         # Animation
         # ---------------------------------------------------------
 
-        self.animation = QPropertyAnimation(
-            self,
-            b"minimumWidth"
-        )
+        self.animation = QPropertyAnimation(self, b"minimumWidth")
 
         self.animation.setDuration(180)
-        self.animation.setEasingCurve(
-            QEasingCurve.OutCubic
-        )
+        self.animation.setEasingCurve(QEasingCurve.OutCubic)
 
-        self.animation.valueChanged.connect(
-            self._animation_width_changed
-        )
+        self.animation.valueChanged.connect(self._animation_width_changed)
 
     # =============================================================
     # Events
@@ -309,42 +235,12 @@ class BookSpine(QFrame):
 
     def _metadata_text(self):
 
-        lines = [
-            f"<b>{self.work.titre}</b>"
-        ]
+        lines = [f"<b>{self.work.titre}</b>"]
 
         note = getattr(self.work, "note", None)
 
-        if note not in (
-            None, "", 0, "0", 0.0, "0.0"
-        ):
-            lines.append(
-                f"Note : {note}/10"
-            )
-
-        author = getattr(
-            self.work,
-            "auteur",
-            ""
-        )
-
-        if author:
-            lines.append(
-                f"Auteur : {author}"
-            )
-
-        total_episodes = getattr(
-            self.work,
-            "nb_ep_tot",
-            None
-        )
-
-        if total_episodes not in (
-            None, "", 0, "0"
-        ):
-            lines.append(
-                f"Episodes : {total_episodes}"
-            )
+        if note not in (None, "", 0, "0", 0.0, "0.0"):
+            lines.append(f"Note : {note}/10")
 
         return "<br>".join(lines)
 
@@ -370,8 +266,7 @@ class BookSpine(QFrame):
 
         if self.width() <= self.normal_width:
             pixmap = pixmap.transformed(
-                QTransform().rotate(-90),
-                Qt.SmoothTransformation
+                QTransform().rotate(-90), Qt.SmoothTransformation
             )
 
         # ---------------------------------------------------------
@@ -379,12 +274,11 @@ class BookSpine(QFrame):
         # ---------------------------------------------------------
 
         scaled = pixmap.scaled(
-            self.image_label.size(),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation
+            self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
 
         self.image_label.setPixmap(scaled)
+
 
 class RotatedLabel(QLabel):
     def __init__(self, text="", parent=None):
@@ -704,6 +598,10 @@ class LibraryWidgets(QWidget):
         super().__init__()
         self.db = db
         self._data_loaded = False
+        self._data_loading = False
+        self._data_process = None
+        self._data_queue = None
+        self._data_cache = {}
         self.data_folder = Path(data_folder).expanduser() if data_folder else Path(".")
         self.setMinimumSize(800, 600)
         self.rooms = {
@@ -716,8 +614,8 @@ class LibraryWidgets(QWidget):
             "wattpad": ("Wattpad", "wattpad", Wattpad),
         }
         self.room_widgets = {}
+        self._room_columns = {}
         self._build_ui()
-        # self._schedule_initial_load()
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -733,7 +631,52 @@ class LibraryWidgets(QWidget):
         if self._data_loaded:
             return
         self.refresh()
+
+    def _start_data_load(self):
+        if self._data_loading:
+            return
+
+        self._data_loading = True
+        context = multiprocessing.get_context("spawn")
+        self._data_queue = context.Queue()
+        self._data_process = context.Process(
+            target=load_tables_for_display,
+            args=(
+                str(self.db.db_path),
+                [room[1] for room in self.rooms.values()],
+                self._data_queue,
+            ),
+        )
+        self._data_process.start()
+        QTimer.singleShot(15, self._poll_data_load)
+
+    def _poll_data_load(self):
+        if self._data_queue is None:
+            return
+
+        try:
+            rows_by_table = self._data_queue.get_nowait()
+        except Empty:
+            if self._data_process is not None and self._data_process.is_alive():
+                QTimer.singleShot(15, self._poll_data_load)
+                return
+            rows_by_table = {}
+
+        self._data_cache = {}
+        for room_type, (_, table, model_cls) in self.rooms.items():
+            self._data_cache[room_type] = [
+                self.db.row_to_model(model_cls, row)
+                for row in rows_by_table.get(table, [])
+            ]
+
+        if self._data_process is not None:
+            self._data_process.join()
+        self._data_process = None
+        self._data_queue.close()
+        self._data_queue = None
+        self._data_loading = False
         self._data_loaded = True
+        self.refresh_display()
 
     # ================================================================
     # UI
@@ -769,11 +712,12 @@ class LibraryWidgets(QWidget):
 
         for room_type, room_info in self.rooms.items():
             title, _, _ = room_info
+            works = self._select_preview_works(self._get_room_data(room_type))
 
             preview = self._create_room_preview(
                 title,
                 room_type,
-                self._get_room_data(room_type)[:6],
+                works,
             )
 
             previews.append(preview)
@@ -784,13 +728,36 @@ class LibraryWidgets(QWidget):
 
         return widget
 
+    @staticmethod
+    def _note_value(work):
+        try:
+            return float(getattr(work, "note", 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    @classmethod
+    def _select_preview_works(cls, works, limit=9):
+        works_by_note = {}
+        for work in works:
+            works_by_note.setdefault(cls._note_value(work), []).append(work)
+
+        selected = []
+        for note in sorted(works_by_note, reverse=True):
+            note_works = works_by_note[note]
+            remaining = limit - len(selected)
+            if remaining <= 0:
+                break
+            selected.extend(random.sample(note_works, min(remaining, len(note_works))))
+
+        return selected
+
     # ================================================================
     # ROOM PREVIEW
     # ================================================================
 
     def _create_room_preview(self, title, room_type, works):
         room = QFrame()
-        room.setMinimumSize(280, 430)
+        room.setMinimumSize(300, 600)
         room.setStyleSheet("""
             QFrame {
                 background: #202020;
@@ -830,11 +797,11 @@ class LibraryWidgets(QWidget):
         preview_layout.setContentsMargins(20, 25, 20, 20)
         preview_layout.setSpacing(8)
         # Quelques couvertures
-        for i, work in enumerate(works[:6]):
+        for i, work in enumerate(works[:9]):
             cover = self._create_preview_cover(work)
             preview_layout.addWidget(cover, i // 3, i % 3)
         layout.addWidget(preview)
-        layout.addStretch()
+        
         hint = QLabel("Entrer dans la salle →")
         hint.setAlignment(Qt.AlignCenter)
         hint.setStyleSheet("""
@@ -933,11 +900,7 @@ class LibraryWidgets(QWidget):
     # ================================================================
 
     def _get_room_data(self, room_type):
-        _, table, model_cls = self.rooms[room_type]
-        try:
-            return list(self.db.get(table, model_cls) or [])
-        except (AttributeError, TypeError, ValueError):
-            return []
+        return self._data_cache.get(room_type, [])
 
     # ================================================================
     # ENTER ROOM
@@ -945,7 +908,9 @@ class LibraryWidgets(QWidget):
 
     def _enter_room(self, room):
         self._update_room_filters(room)
-        self.stack.setCurrentWidget(self.room_widgets[room])
+        widget = self.room_widgets[room]
+        self.stack.setCurrentWidget(widget)
+        QTimer.singleShot(0, lambda: self._refresh_room(room))
 
     # ================================================================
     # FILTERS
@@ -999,11 +964,28 @@ class LibraryWidgets(QWidget):
     # ================================================================
 
     def _display_works(self, widget, works):
-        self._clear_layout(widget.grid)
-
-        # A shelf contains a horizontal row of books.
         available_width = max(300, widget.container.width() - 60)
-        books_per_row = max(1, available_width // 23)
+
+        book_width = 38
+        spacing = 7
+
+        books_per_row = (
+            max(1, int((available_width + spacing) / (book_width + spacing))) - 1
+        )
+
+        room_type = next(
+            (
+                room
+                for room, room_widget in self.room_widgets.items()
+                if room_widget is widget
+            ),
+            None,
+        )
+
+        if room_type is not None:
+            self._room_columns[room_type] = books_per_row
+
+        self._clear_layout(widget.grid)
 
         for start in range(0, len(works), books_per_row):
             row = QFrame()
@@ -1114,7 +1096,31 @@ class LibraryWidgets(QWidget):
     # PUBLIC REFRESH
     # ================================================================
 
-    def refresh(self):
+    def refresh_display(self):
+        current_widget = self.stack.currentWidget()
+        was_hall_active = current_widget is self.hall
+        hall_index = self.stack.indexOf(self.hall)
+        self.stack.removeWidget(self.hall)
+        self.hall.deleteLater()
+        self.hall = self._create_hall()
+        self.stack.insertWidget(hall_index, self.hall)
         for room_type in self.room_widgets:
             self._update_room_filters(room_type)
             self._refresh_room(room_type)
+        if was_hall_active:
+            self.stack.setCurrentWidget(self.hall)
+        elif current_widget is not None:
+            self.stack.setCurrentWidget(current_widget)
+
+    def refresh(self):
+        """Reload library data without blocking the Qt event loop."""
+        self._start_data_load()
+
+    def closeEvent(self, event):
+        if self._data_process is not None and self._data_process.is_alive():
+            self._data_process.terminate()
+            self._data_process.join()
+        if self._data_queue is not None:
+            self._data_queue.close()
+            self._data_queue = None
+        super().closeEvent(event)
