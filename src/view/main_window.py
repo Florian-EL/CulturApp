@@ -179,8 +179,7 @@ class CulturApp(QWidget) :
     def on_tab_changed(self):
         """Rafraîchit l'onglet seulement si ce widget a déjà été chargé."""
         widget = self.stack.currentWidget()
-        if getattr(widget, "_data_loaded", False) :
-            widget.refresh()
+        widget.refresh()
     
     def open_settings(self):
         """Ouvre le dialogue des paramètres"""
