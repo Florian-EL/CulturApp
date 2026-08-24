@@ -1,24 +1,30 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QWidget, QSizePolicy, \
-    QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QFileDialog
-from PySide6.QtCore import QTimer
-
-from pandas import read_csv
 import json
 
+from pandas import read_csv
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QPushButton,
+    QSizePolicy,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
 from src.models.film import Film
-from src.models.serie_film import SerieFilm
-from src.models.serie import Serie
-from src.models.roman import Roman
 from src.models.manga import Manga
+from src.models.roman import Roman
+from src.models.serie import Serie
+from src.models.serie_film import SerieFilm
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
-
-from src.view.home_tab import HomeWidget
-from src.view.TypeTab import TypeWidget
-
-from src.services.database_manager import DatabaseManager
-from src.view.settings_dialog import SettingsDialog
 from src.services.config_manager import ConfigManager
+from src.services.database_manager import DatabaseManager
+from src.view.home_tab import HomeWidget
+from src.view.library_widget import LibraryWidgets
+from src.view.settings_dialog import SettingsDialog
+from src.view.TypeTab import TypeWidget
 
 
 class CulturApp(QWidget) :
@@ -105,7 +111,10 @@ class CulturApp(QWidget) :
             },
         }
         
+        self.library_widgets = LibraryWidgets(self.db, self.data_folder)
+        
         self.stack.addWidget(self.home_widget)
+        self.stack.addWidget(self.library_widgets)
         
         # Rafraîchir les données quand on change d'onglet
         self.stack.currentChanged.connect(self.on_tab_changed)
@@ -122,6 +131,12 @@ class CulturApp(QWidget) :
         button_home.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         button_home.clicked.connect(lambda: self.stack.setCurrentWidget(self.home_widget))
         self.right_menu_layout.addWidget(button_home)
+        
+        button_library = QPushButton("Library")
+        button_library.setStyleSheet("background-color: red;")
+        button_library.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        button_library.clicked.connect(lambda: self.stack.setCurrentWidget(self.library_widgets))
+        self.right_menu_layout.addWidget(button_library)
         
         for menu_name, menu_key in self.cultur_menu:
             button = QPushButton(menu_name)

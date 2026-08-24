@@ -1,31 +1,32 @@
 from dataclasses import fields
+from pathlib import Path
 
+import pandas as pd
+from PySide6.QtCore import (
+    QTimer,
+)
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QTableWidget,
-    QTableWidgetItem,
-    QPushButton,
-    QSizePolicy,
-    QDialog,
-    QLabel,
-    QMessageBox,
-    QTabWidget,
-    QLineEdit,
     QComboBox,
-    QHeaderView,
+    QDialog,
     QFrame,
     QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import QTimer
-import pandas as pd
 
 from src.view.add_window import AddData
 from src.view.del_window import DelData
 from src.view.edit_window import EditData
 from src.view.gallery_widget import GalleryWidget, sanitize_filename
-from pathlib import Path
 
 
 class TypeWidget(QWidget):
@@ -139,9 +140,6 @@ class TypeWidget(QWidget):
         self.table.setAlternatingRowColors(True)
         table_layout.addWidget(self.table)
 
-        self._data_loaded = False
-        self._schedule_initial_load()
-
         # Buttons moved to shared area below tabs
         self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self, field_options=self.field_options)
         self.tab_widget.addTab(self.gallery, "Gallery")
@@ -174,6 +172,9 @@ class TypeWidget(QWidget):
         shared_buttons.addWidget(add_button)
         shared_buttons.addWidget(del_button)
         main_content_layout.addLayout(shared_buttons)
+        
+        self._data_loaded = False
+        self._schedule_initial_load()
     
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""
