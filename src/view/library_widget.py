@@ -1,11 +1,19 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import (
+    QEasingCurve,
+    Qt,
+    QTimer,
+    QVariantAnimation,
+)
 from PySide6.QtGui import QCursor, QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
     QFrame,
+    QGraphicsProxyWidget,
+    QGraphicsScene,
+    QGraphicsView,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -315,6 +323,351 @@ class BookSpine(QFrame):
             self.preview.hide()
 
 
+
+
+
+class RoomCarousel(QGraphicsView):
+    """
+    Horizontal infinite carousel.
+
+    - Navigation uniquement à la roulette.
+    - Les éléments tournent de manière circulaire.
+    - L'élément central est le plus important.
+    - Les éléments latéraux sont progressivement réduits.
+    """
+
+    def __init__(self, widgets, parent=None):
+        super().__init__(parent)
+
+        self.widgets = widgets
+        self.items = []
+
+        # Position virtuelle du carousel.
+        # Peut être non entière pendant une animation.
+        self.offset = 0.0
+
+        # Configuration visuelle
+        self.spacing = 280
+        self.max_scale = 1.0
+        self.min_scale = 0.55
+
+        self.max_opacity = 1.0
+        self.min_opacity = 0.35
+
+        self.rotation = 4.0
+
+        # Animation
+        self.animation = None
+
+        self._setup_view()
+        self._create_items()
+
+    # ------------------------------------------------------------------
+    # Setup
+    # ------------------------------------------------------------------
+
+    def _setup_view(self):
+
+        self.scene = QGraphicsScene(self)
+        self.setScene(self.scene)
+
+        self.setFrameShape(QGraphicsView.NoFrame)
+
+        self.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
+        )
+
+        self.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
+        )
+
+        self.setRenderHints(
+            QPainter.Antialiasing |
+            QPainter.SmoothPixmapTransform
+        )
+
+        self.setAlignment(
+            Qt.AlignCenter
+        )
+
+        self.setStyleSheet(
+            """
+            QGraphicsView {
+                background: transparent;
+                border: none;
+            }
+            """
+        )
+
+        # La scène occupe toute la zone visible.
+        self.scene.setSceneRect(
+            0,
+            0,
+            self.viewport().width(),
+            self.viewport().height()
+        )
+
+    # ------------------------------------------------------------------
+    # Creation
+    # ------------------------------------------------------------------
+
+    def _create_items(self):
+
+        for widget in self.widgets:
+
+            proxy = QGraphicsProxyWidget()
+            proxy.setWidget(widget)
+
+            # Le centre de transformation est le centre
+            # du widget : indispensable pour le scale.
+            proxy.setTransformOriginPoint(
+                proxy.boundingRect().center()
+            )
+
+            self.scene.addItem(proxy)
+            self.items.append(proxy)
+
+        self._update_positions()
+
+    # ------------------------------------------------------------------
+    # Carousel mathematics
+    # ------------------------------------------------------------------
+
+    def _circular_distance(self, index):
+        """
+        Distance signée entre un élément et le centre.
+
+        Exemple avec 5 éléments :
+
+            offset = 0
+
+            A ->  0
+            B ->  1
+            C ->  2
+            D -> -2
+            E -> -1
+        """
+
+        count = len(self.items)
+
+        if count == 0:
+            return 0
+
+        distance = index - self.offset
+
+        # Ramène la distance dans l'intervalle circulaire.
+        while distance > count / 2:
+            distance -= count
+
+        while distance < -count / 2:
+            distance += count
+
+        return distance
+
+    def _update_positions(self):
+
+        if not self.items:
+            return
+
+        viewport_width = self.viewport().width()
+        viewport_height = self.viewport().height()
+
+        center_x = viewport_width / 2
+        center_y = viewport_height / 2
+
+        for index, item in enumerate(self.items):
+
+            relative = self._circular_distance(index)
+            distance = abs(relative)
+
+            # ----------------------------------------------------------
+            # Importance
+            # ----------------------------------------------------------
+
+            # 1 au centre
+            # 0 sur les côtés
+            importance = max(
+                0.0,
+                1.0 - distance / 3.0
+            )
+
+            scale = (
+                self.min_scale
+                + (
+                    self.max_scale
+                    - self.min_scale
+                ) * importance
+            )
+
+            opacity = (
+                self.min_opacity
+                + (
+                    self.max_opacity
+                    - self.min_opacity
+                ) * importance
+            )
+
+            # ----------------------------------------------------------
+            # Position horizontale
+            # ----------------------------------------------------------
+
+            x = (
+                center_x
+                + relative * self.spacing
+            )
+
+            y = center_y
+
+            # ----------------------------------------------------------
+            # Rotation légère
+            # ----------------------------------------------------------
+
+            rotation = -relative * self.rotation
+
+            # ----------------------------------------------------------
+            # Application
+            # ----------------------------------------------------------
+
+            item.setScale(scale)
+            item.setOpacity(opacity)
+            item.setRotation(rotation)
+
+            item.setZValue(
+                1000 - distance
+            )
+
+            # Le widget est centré sur sa position.
+            rect = item.boundingRect()
+
+            item.setPos(
+                x - rect.width() / 2,
+                y - rect.height() / 2
+            )
+
+    # ------------------------------------------------------------------
+    # Navigation
+    # ------------------------------------------------------------------
+
+    def wheelEvent(self, event):
+
+        if not self.items:
+            return
+
+        delta = event.angleDelta().y()
+
+        if delta == 0:
+            return
+
+        # Roulette vers le bas -> élément suivant
+        # Roulette vers le haut -> élément précédent
+        if delta < 0:
+            direction = 1
+        else:
+            direction = -1
+
+        target = round(
+            self.offset
+        ) + direction
+
+        self._animate_to(target)
+
+        event.accept()
+
+    def _animate_to(self, target):
+
+        if self.animation is not None:
+            self.animation.stop()
+
+        start = self.offset
+
+        # --------------------------------------------------------------
+        # Évite les gros déplacements artificiels.
+        #
+        # Exemple :
+        #
+        # A B C D E
+        # offset = 4
+        # next = 5
+        #
+        # On garde 5 comme position virtuelle.
+        # Le modulo est appliqué uniquement au calcul visuel.
+        # --------------------------------------------------------------
+
+        animation = QVariantAnimation(self)
+
+        animation.setStartValue(start)
+        animation.setEndValue(float(target))
+
+        animation.setDuration(400)
+
+        animation.setEasingCurve(
+            QEasingCurve.OutCubic
+        )
+
+        animation.valueChanged.connect(
+            self._animation_value_changed
+        )
+
+        animation.finished.connect(
+            self._animation_finished
+        )
+
+        self.animation = animation
+        animation.start()
+
+    def _animation_value_changed(self, value):
+
+        self.offset = float(value)
+
+        self._update_positions()
+
+    def _animation_finished(self):
+
+        if not self.items:
+            return
+
+        count = len(self.items)
+
+        # --------------------------------------------------------------
+        # On remet offset dans une plage raisonnable.
+        #
+        # Exemple :
+        #
+        # A B C D E
+        #
+        # offset = 5
+        #
+        # devient :
+        #
+        # offset = 0
+        #
+        # Visuellement rien ne change.
+        # --------------------------------------------------------------
+
+        self.offset %= count
+
+        self._update_positions()
+
+        self.animation = None
+
+    # ------------------------------------------------------------------
+    # Resize
+    # ------------------------------------------------------------------
+
+    def resizeEvent(self, event):
+
+        super().resizeEvent(event)
+
+        self.scene.setSceneRect(
+            0,
+            0,
+            self.viewport().width(),
+            self.viewport().height()
+        )
+
+        self._update_positions()
+
+
 class LibraryWidgets(QWidget):
     def __init__(self, db, data_folder=None):
         super().__init__()
@@ -358,21 +711,38 @@ class LibraryWidgets(QWidget):
     # ================================================================
 
     def _create_hall(self):
+
         widget = QWidget()
+
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(50, 40, 50, 40)
-        rooms = QGridLayout()
-        rooms.setSpacing(20)
-        for index, (room_type, room_info) in enumerate(self.rooms.items()):
+        layout.setContentsMargins(
+            0,
+            40,
+            0,
+            40
+        )
+
+        previews = []
+
+        for room_type, room_info in self.rooms.items():
+
             title, _, _ = room_info
+
             preview = self._create_room_preview(
                 title,
                 room_type,
                 self._get_room_data(room_type)[:6],
             )
-            rooms.addWidget(preview, index // 2, index % 2)
-        layout.addLayout(rooms)
-        layout.addStretch()
+
+            previews.append(preview)
+
+        carousel = RoomCarousel(
+            previews,
+            widget
+        )
+
+        layout.addWidget(carousel)
+
         return widget
 
     # ================================================================
