@@ -261,15 +261,6 @@ class BookSpine(QFrame):
             return
 
         # ---------------------------------------------------------
-        # Normal view
-        # ---------------------------------------------------------
-
-        if self.width() <= self.normal_width:
-            pixmap = pixmap.transformed(
-                QTransform().rotate(-90), Qt.SmoothTransformation
-            )
-
-        # ---------------------------------------------------------
         # Expanded view
         # ---------------------------------------------------------
 
