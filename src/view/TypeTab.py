@@ -133,11 +133,12 @@ class TypeWidget(QWidget):
         table_layout = QVBoxLayout(table_page)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(len(self.columns) + 1)
-        self.table.setHorizontalHeaderLabels([""] + self.columns)
+        self.table.setColumnCount(len(self.columns))
+        self.table.setHorizontalHeaderLabels(self.columns)
         self.table.setWordWrap(True)
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(True)
+        self.table.cellDoubleClicked.connect(self.edit_row)
         table_layout.addWidget(self.table)
 
         # Buttons moved to shared area below tabs
@@ -167,11 +168,16 @@ class TypeWidget(QWidget):
         del_button = QPushButton("Del")
         del_button.setStyleSheet("background-color: red;")
         del_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        del_button.clicked.connect(self.open_del_window)
+        del_button.clicked.connect(self.delete_selected)
+        del_button.setVisible(self.tab_widget.tabText(self.tab_widget.currentIndex()) == "Table")
 
         shared_buttons.addWidget(add_button)
         shared_buttons.addWidget(del_button)
         main_content_layout.addLayout(shared_buttons)
+
+        self.tab_widget.currentChanged.connect(
+            lambda index: del_button.setVisible(self.tab_widget.tabText(index) == "Table")
+        )
         
         self._data_loaded = False
         self._schedule_initial_load()
@@ -471,11 +477,11 @@ class TypeWidget(QWidget):
     def set_data(self, data, row):
         for i, col in enumerate(self.columns):
             value = getattr(data, col.lower(), "")
-            self.table.setItem(row, i + 1, QTableWidgetItem("" if value is None else str(value)))
+            self.table.setItem(row, i, QTableWidgetItem("" if value is None else str(value)))
 
-        edit_button = QPushButton("Edit")
-        edit_button.clicked.connect(lambda checked=False, current_data=data: self.open_edit_window(current_data))
-        self.table.setCellWidget(row, 0, edit_button)
+    def edit_row(self, row, _column):
+        if 0 <= row < len(self.data):
+            self.open_edit_window(self.data[row])
 
     def load(self):
         self.table.setUpdatesEnabled(False)
@@ -544,12 +550,9 @@ class TypeWidget(QWidget):
             self.add(data)
         self.parent().home_widget.refresh()
     
-    def open_del_window(self) :
-        del_window = DelData()
-        del_window.exec_()
-        data = del_window.get_data()
-        
-        self.db.delete(self.table_name, self.model_cls(id=int(data)))
-        
+    def delete_selected(self):
+        data = self.data[self.table.currentRow()]
+        if data is None:
+            return
+        self.db.delete(self.table_name, data)
         self.refresh()
-        self.parent().home_widget.refresh()

@@ -21,6 +21,7 @@ from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
 from src.services.config_manager import ConfigManager
 from src.services.database_manager import DatabaseManager
+from src.view.citation_widget import CitationWidget
 from src.view.home_tab import HomeWidget
 from src.view.library_widget import LibraryWidgets
 from src.view.settings_dialog import SettingsDialog
@@ -38,6 +39,7 @@ class CulturApp(QWidget) :
             self.config = json.load(file)
         
         self.cultur_menu = [
+            ("Citations", "citation"),
             ("Films", "film"),
             ("Serie_films", "serie_film"),
             ("Series", "serie"),
@@ -171,6 +173,22 @@ class CulturApp(QWidget) :
         self._show_type_widget(first_key, preload=True)
 
     def _show_type_widget(self, key, preload=False):
+        if key == "citation":
+            widget = self._type_widgets.get(key)
+            if widget is None:
+                widget = CitationWidget(
+                    self.db,
+                    self.config["columns"]["citation"],
+                    self.data_folder,
+                    self.initial_sorts.get("citation", []),
+                    parent=self,
+                )
+                self._type_widgets[key] = widget
+                self.stack.addWidget(widget)
+            if not preload:
+                self.stack.setCurrentWidget(widget)
+            return
+
         widget = self._type_widgets.get(key)
         if widget is None:
             spec = self._type_widget_specs[key]

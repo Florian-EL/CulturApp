@@ -129,6 +129,12 @@
       "nb_vu",
       "Note",
       "Notice"
+    ],
+    "citation": [
+      "Citation",
+      "Oeuvre",
+      "Personnage",
+      "Artiste"
     ]
   },
   "initial_sort": {
@@ -231,6 +237,24 @@
       },
       {
         "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "citation": [
+      {
+        "field": "oeuvre",
+        "order": "asc"
+      },
+      {
+        "field": "artiste",
+        "order": "asc"
+      },
+      {
+        "field": "personnage",
+        "order": "asc"
+      },
+      {
+        "field": "citation",
         "order": "asc"
       }
     ]
