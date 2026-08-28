@@ -240,7 +240,7 @@ class BookSpine(QFrame):
         note = getattr(self.work, "note", None)
 
         if note not in (None, "", 0, "0", 0.0, "0.0"):
-            lines.append(f"Note : {note}/10")
+            lines.append(f"Note : {note}/20")
 
         return "<br>".join(lines)
 

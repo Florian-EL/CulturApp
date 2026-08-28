@@ -192,7 +192,7 @@
       },
       {
         "field": "updated",
-        "order": "asc"
+        "order": "desc"
       },
       {
         "field": "titre",
@@ -206,7 +206,7 @@
       },
       {
         "field": "updated",
-        "order": "asc"
+        "order": "desc"
       },
       {
         "field": "titre",
@@ -215,12 +215,12 @@
     ],
     "webtoon": [
       {
-        "field": "updated",
+        "field": "etat",
         "order": "asc"
       },
       {
-        "field": "etat",
-        "order": "asc"
+        "field": "updated",
+        "order": "desc"
       },
       {
         "field": "titre",
@@ -229,12 +229,12 @@
     ],
     "wattpad": [
       {
-        "field": "updated",
+        "field": "etat",
         "order": "asc"
       },
       {
-        "field": "etat",
-        "order": "asc"
+        "field": "updated",
+        "order": "desc"
       },
       {
         "field": "titre",
