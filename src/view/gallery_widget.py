@@ -32,6 +32,29 @@ def sanitize_filename(name: str) -> str:
     return name.strip()
 
 
+def rename_title_image(data_folder, old_title: str, new_title: str) -> bool:
+    if not old_title or new_title == old_title:
+        return False
+
+    try:
+        data_path = Path(data_folder)
+        base_old = sanitize_filename(old_title)
+        base_new = sanitize_filename(new_title)
+        exts = ['.jpg', '.jpeg', '.png', '.webp']
+
+        for ext in exts:
+            old_path = data_path / (base_old + ext)
+            if old_path.exists():
+                new_path = data_path / (base_new + ext)
+                data_path.mkdir(parents=True, exist_ok=True)
+                old_path.rename(new_path)
+                return True
+    except Exception:
+        return False
+
+    return False
+
+
 class ClickableLabel(QLabel):
     clicked = Signal()
 
@@ -653,32 +676,15 @@ class GalleryWidget(QWidget):
 
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()
-            # Handle title change: rename image file if present
             old_title = getattr(data, 'titre', '')
-            new_title = updated_values.get('Titre', old_title)
-            if new_title != old_title and old_title != "":
-                try:
-                    base_old = sanitize_filename(old_title)
-                    base_new = sanitize_filename(new_title)
-                    exts = ['.jpg', '.jpeg', '.png', '.webp']
-                    for ext in exts:
-                        old_path = Path(self.data_folder) / (base_old + ext)
-                        if old_path.exists():
-                            new_path = Path(self.data_folder) / (base_new + ext)
-                            # Ensure parent exists
-                            Path(self.data_folder).mkdir(parents=True, exist_ok=True)
-                            try:
-                                old_path.rename(new_path)
-                            except Exception:
-                                pass
-                            break
-                except Exception:
-                    pass
 
             for col in self.columns:
                 setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
-            
+
             cal_data = self.parent.calculate(data)
+            new_title = getattr(cal_data, 'titre', old_title)
+            rename_title_image(self.data_folder, old_title, new_title)
+
             self.db.update(self.table_name, cal_data)
             self.refresh()
 

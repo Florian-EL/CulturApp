@@ -1,5 +1,4 @@
 import sqlite3
-
 from dataclasses import asdict, fields, is_dataclass
 from pathlib import Path
 
@@ -8,10 +7,8 @@ from src.models.film import Film
 from src.models.manga import Manga
 from src.models.roman import Roman
 from src.models.serie import Serie
-from src.models.serie_film import SerieFilm
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
-
 from src.utils import MediaType
 
 
@@ -44,10 +41,6 @@ class DatabaseManager:
             MediaType.FILM: {
                 "table": "film",
                 "class": Film
-            },
-            MediaType.SERIEFILM: {
-                "table": "serie_film",
-                "class": SerieFilm
             },
             MediaType.SERIE: {
                 "table": "serie",

@@ -2,6 +2,8 @@
   "data_folder": "/home/florian/CulturApp/data",
   "columns": {
     "film" :[
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Type",
       "Genre",
@@ -18,25 +20,9 @@
       "nb_ep_tot",
       "Notice"
     ],
-    "serie_film" : [
-      "Nom_serie",
-      "Film",
-      "Titre",
-      "Type",
-      "Genre",
-      "VO",
-      "Cinema",
-      "Updated",
-      "Etat",
-      "Annee_vu",
-      "Nb_vu",
-      "Note",
-      "nb_ep_vu",
-      "nb_ep_res",
-      "nb_ep_tot",
-      "Notice"
-    ],
     "serie" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Type",
       "Genre",
@@ -69,6 +55,8 @@
       "Notice"
     ],
     "roman" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "auteur",
       "type",
@@ -84,6 +72,8 @@
       "Notice"
     ],
     "manga" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type", 
@@ -103,6 +93,8 @@
       "Notice"
     ],
     "webtoon" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type",
@@ -117,6 +109,8 @@
       "Notice"
     ],
     "wattpad" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type",
@@ -139,20 +133,6 @@
   },
   "initial_sort": {
     "film": [
-      {
-        "field": "updated",
-        "order": "desc"
-      },
-      {
-        "field": "etat",
-        "order": "asc"
-      },
-      {
-        "field": "titre",
-        "order": "asc"
-      }
-    ],
-    "serie_film": [
       {
         "field": "updated",
         "order": "desc"
@@ -261,6 +241,7 @@
   },
   "hidden_columns": {
     "film" : [
+      "Titre",
       "Etat",
       "Nb_vu",
       "nb_ep_vu",
@@ -275,12 +256,14 @@
       "nb_ep_tot"
     ],
     "serie": [
+      "Titre",
       "Etat",
       "Nb_ep_vu",
       "Nb_ep_res",
       "Nb_ep_tot"
     ],
     "roman" : [
+      "Titre",
       "Etat",
       "nb_ep_res"
     ],

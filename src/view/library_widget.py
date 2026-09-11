@@ -10,7 +10,7 @@ from PySide6.QtCore import (
     QTimer,
     QVariantAnimation,
 )
-from PySide6.QtGui import QPainter, QPixmap, QTransform
+from PySide6.QtGui import QPainter, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -33,7 +33,6 @@ from src.models.film import Film
 from src.models.manga import Manga
 from src.models.roman import Roman
 from src.models.serie import Serie
-from src.models.serie_film import SerieFilm
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
 from src.services.database_manager import load_tables_for_display
@@ -597,7 +596,6 @@ class LibraryWidgets(QWidget):
         self.setMinimumSize(800, 600)
         self.rooms = {
             "film": ("Films", "film", Film),
-            "serie_film": ("Films de séries", "serie_film", SerieFilm),
             "serie": ("Séries", "serie", Serie),
             "roman": ("Romans", "roman", Roman),
             "manga": ("Mangas", "manga", Manga),

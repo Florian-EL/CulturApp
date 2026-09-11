@@ -2,9 +2,11 @@ from dataclasses import dataclass
 
 @dataclass
 class Serie:
-    id          : int = 0
-    titre       : str = ""
-    type        : str = ""
+    id              : int = 0
+    titre_principal : str = ""
+    titre_secondaire: str = ""
+    titre           : str = ""
+    type            : str = ""
     genre       : str = ""
     vo          : str = ""
     updated     : str = ""

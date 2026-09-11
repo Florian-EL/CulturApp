@@ -16,7 +16,6 @@ from src.models.film import Film
 from src.models.manga import Manga
 from src.models.roman import Roman
 from src.models.serie import Serie
-from src.models.serie_film import SerieFilm
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
 from src.services.config_manager import ConfigManager
@@ -41,7 +40,6 @@ class CulturApp(QWidget) :
         self.cultur_menu = [
             ("Citations", "citation"),
             ("Films", "film"),
-            ("Serie_films", "serie_film"),
             ("Series", "serie"),
             ("Romans", "roman"),
             ("Mangas", "manga"),
@@ -74,12 +72,6 @@ class CulturApp(QWidget) :
                 "model_cls": Film,
                 "columns": self.config["columns"]["film"],
                 "hidden_columns": self.config["hidden_columns"]["film"],
-            },
-            "serie_film": {
-                "table_name": "serie_film",
-                "model_cls": SerieFilm,
-                "columns": self.config["columns"]["serie_film"],
-                "hidden_columns": self.config["hidden_columns"]["serie_film"],
             },
             "serie": {
                 "table_name": "serie",

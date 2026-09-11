@@ -2,9 +2,11 @@ from dataclasses import dataclass
 
 @dataclass
 class Wattpad:
-    id        : int = 0
-    titre     : str = ""
-    auteur    : str = ""
+    id              : int = 0
+    titre_principal : str = ""
+    titre_secondaire: str = ""
+    titre           : str = ""
+    auteur          : str = ""
     type      : str = ""
     genre     : str = ""
     nb_ep_vu  : int = 0

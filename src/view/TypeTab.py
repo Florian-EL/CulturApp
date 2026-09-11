@@ -1,5 +1,4 @@
 from dataclasses import fields
-from pathlib import Path
 
 import pandas as pd
 from PySide6.QtCore import (
@@ -24,15 +23,24 @@ from PySide6.QtWidgets import (
 )
 
 from src.view.add_window import AddData
-from src.view.del_window import DelData
 from src.view.edit_window import EditData
-from src.view.gallery_widget import GalleryWidget, sanitize_filename
+from src.view.gallery_widget import GalleryWidget, rename_title_image
 
 
 class TypeWidget(QWidget):
-    def __init__(self, db, table_name, model_cls, columns, hidden_columns, data_folder, initial_sort_rules=None, field_options=None):
+    def __init__(
+        self,
+        db,
+        table_name,
+        model_cls,
+        columns,
+        hidden_columns,
+        data_folder,
+        initial_sort_rules=None,
+        field_options=None,
+    ):
         super().__init__()
-        
+
         self.db = db
         self.table_name = table_name
         self.model_cls = model_cls
@@ -110,7 +118,8 @@ class TypeWidget(QWidget):
             for rule in self.initial_sort_rules:
                 self._add_sort_row(
                     field_name=rule.get("field"),
-                    reverse=str(rule.get("order", "asc")).lower() in {"desc", "descending", "descroissant"},
+                    reverse=str(rule.get("order", "asc")).lower()
+                    in {"desc", "descending", "descroissant"},
                 )
         else:
             self._add_sort_row(field_name=None, reverse=False)
@@ -123,7 +132,6 @@ class TypeWidget(QWidget):
         controls_layout.addWidget(sort_frame)
 
         main_content_layout.addWidget(controls_group)
-
 
         # Create tabs: Table and Gallery
         self.tab_widget = QTabWidget()
@@ -142,21 +150,28 @@ class TypeWidget(QWidget):
         table_layout.addWidget(self.table)
 
         # Buttons moved to shared area below tabs
-        self.gallery = GalleryWidget(self.db, self.table_name, self.model_cls, self.columns, self.data_folder, parent=self, field_options=self.field_options)
+        self.gallery = GalleryWidget(
+            self.db,
+            self.table_name,
+            self.model_cls,
+            self.columns,
+            self.data_folder,
+            parent=self,
+            field_options=self.field_options,
+        )
         self.tab_widget.addTab(self.gallery, "Gallery")
         self.tab_widget.addTab(table_page, "Table")
 
         # Refresh gallery when switching to that tab
         self.tab_widget.currentChanged.connect(self.on_subtab_changed)
-        
+
         self.tab_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         layout.addWidget(self.tab_widget)
         layout.addLayout(main_content_layout)
-        
+
         layout.setStretch(0, 1)
         layout.setStretch(1, 0)
-        
 
         # Shared buttons visible on both tabs
         shared_buttons = QVBoxLayout()
@@ -169,25 +184,29 @@ class TypeWidget(QWidget):
         del_button.setStyleSheet("background-color: red;")
         del_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         del_button.clicked.connect(self.delete_selected)
-        del_button.setVisible(self.tab_widget.tabText(self.tab_widget.currentIndex()) == "Table")
+        del_button.setVisible(
+            self.tab_widget.tabText(self.tab_widget.currentIndex()) == "Table"
+        )
 
         shared_buttons.addWidget(add_button)
         shared_buttons.addWidget(del_button)
         main_content_layout.addLayout(shared_buttons)
 
         self.tab_widget.currentChanged.connect(
-            lambda index: del_button.setVisible(self.tab_widget.tabText(index) == "Table")
+            lambda index: del_button.setVisible(
+                self.tab_widget.tabText(index) == "Table"
+            )
         )
-        
+
         self._data_loaded = False
         self._schedule_initial_load()
-    
+
     def showEvent(self, event):
         """Appelé quand le widget devient visible"""
         super().showEvent(event)
         if not self._data_loaded:
             self._schedule_initial_load()
-        
+
     def _get_available_fields(self):
         fields = [("Titre", "titre"), ("État", "etat"), ("Note", "note")]
         seen = {item[1] for item in fields}
@@ -197,7 +216,13 @@ class TypeWidget(QWidget):
                 fields.append((col, value))
                 seen.add(value)
 
-        extra_fields = [("Auteur", "auteur"), ("Nom série", "nom_serie"), ("Nb ép. tot", "nb_ep_tot"), ("Nb ép. vu", "nb_ep_vu"), ("Nb ép. res", "nb_ep_res")]
+        extra_fields = [
+            ("Auteur", "auteur"),
+            ("Nom série", "nom_serie"),
+            ("Nb ép. tot", "nb_ep_tot"),
+            ("Nb ép. vu", "nb_ep_vu"),
+            ("Nb ép. res", "nb_ep_res"),
+        ]
         for display_name, value in extra_fields:
             if value not in seen:
                 fields.append((display_name, value))
@@ -210,7 +235,9 @@ class TypeWidget(QWidget):
     def _add_sort_row(self, field_name=None, reverse=False):
         row_widget = QFrame()
         row_widget.setFrameShape(QFrame.StyledPanel)
-        row_widget.setStyleSheet("QFrame { border: 1px solid #999; border-radius: 6px; }")
+        row_widget.setStyleSheet(
+            "QFrame { border: 1px solid #999; border-radius: 6px; }"
+        )
         row_layout_final = QHBoxLayout(row_widget)
         row_layout = QVBoxLayout()
 
@@ -235,8 +262,12 @@ class TypeWidget(QWidget):
         remove_button = QPushButton("×")
         remove_button.setFixedWidth(24)
         remove_button.setToolTip("Supprimer ce tri")
-        remove_button.clicked.connect(lambda _, widget=row_widget, combo_pair=(field_combo, order_combo): self._remove_sort_row(widget, combo_pair))
-        
+        remove_button.clicked.connect(
+            lambda _, widget=row_widget, combo_pair=(field_combo, order_combo): (
+                self._remove_sort_row(widget, combo_pair)
+            )
+        )
+
         row_layout_final.addLayout(row_layout)
         row_layout_final.addWidget(remove_button)
 
@@ -262,14 +293,60 @@ class TypeWidget(QWidget):
 
         if field_name is None:
             values = []
-            for attr in ["titre", "auteur", "nom_serie", "note", "etat", "nb_ep_tot", "nb_ep_vu", "nb_ep_res"]:
+            for attr in [
+                "titre",
+                "auteur",
+                "nom_serie",
+                "note",
+                "etat",
+                "nb_ep_tot",
+                "nb_ep_vu",
+                "nb_ep_res",
+            ]:
                 values.append(self._normalize_search_value(getattr(data, attr, "")))
             for col in self.columns:
-                values.append(self._normalize_search_value(getattr(data, col.lower(), "")))
+                values.append(
+                    self._normalize_search_value(getattr(data, col.lower(), ""))
+                )
             return any(query in value for value in values if value)
 
         value = self._normalize_search_value(getattr(data, field_name, ""))
         return query in value
+
+    def _sync_title_fields(self, data):
+        legacy_title = (getattr(data, "titre", "") or "").strip()
+        title_principal = (getattr(data, "titre_principal", "") or "").strip()
+        title_secondaire = (getattr(data, "titre_secondaire", "") or "").strip()
+
+        if self.table_name == "serie_film":
+            if not title_principal:
+                title_principal = (getattr(data, "nom_serie", "") or "").strip()
+            if not title_secondaire:
+                title_secondaire = (getattr(data, "film", "") or "").strip()
+
+            if not title_principal and " - " in legacy_title:
+                parts = [part.strip() for part in legacy_title.split(" - ", 1)]
+                title_principal = parts[0]
+                if len(parts) > 1:
+                    title_secondaire = parts[1]
+
+            if not title_principal:
+                title_principal = legacy_title
+
+        else:
+            if not title_principal:
+                title_principal = legacy_title
+
+        if self.table_name != "serie_film":
+            title_secondaire = title_secondaire.strip()
+
+        data.titre_principal = title_principal
+        data.titre_secondaire = title_secondaire
+
+        if title_secondaire:
+            data.titre = f"{title_principal} - {title_secondaire}"
+        else:
+            data.titre = title_principal
 
     def _sort_value(self, data, field_name):
         if not field_name:
@@ -279,7 +356,22 @@ class TypeWidget(QWidget):
         if value in (None, ""):
             return (1, "")
 
-        if field_name in {"nb_ep_tot", "nb_ep_vu", "nb_ep_res", "note", "nb_vu", "nb_saison", "ep_act", "ep_deb", "priorite", "sortie", "annee_vu", "type", "vo", "cinema"}:
+        if field_name in {
+            "nb_ep_tot",
+            "nb_ep_vu",
+            "nb_ep_res",
+            "note",
+            "nb_vu",
+            "nb_saison",
+            "ep_act",
+            "ep_deb",
+            "priorite",
+            "sortie",
+            "annee_vu",
+            "type",
+            "vo",
+            "cinema",
+        }:
             try:
                 return (0, float(value))
             except (TypeError, ValueError):
@@ -297,7 +389,11 @@ class TypeWidget(QWidget):
 
         filtered = list(self.all_data)
         if query:
-            filtered = [data for data in filtered if self._matches_filter(data, field_name, query)]
+            filtered = [
+                data
+                for data in filtered
+                if self._matches_filter(data, field_name, query)
+            ]
 
         sort_rules = []
         for field_combo, order_combo in self.sort_rows:
@@ -307,7 +403,11 @@ class TypeWidget(QWidget):
 
         if sort_rules:
             for sort_field, reverse in reversed(sort_rules):
-                filtered = sorted(filtered, key=lambda data: self._sort_value(data, sort_field), reverse=reverse)
+                filtered = sorted(
+                    filtered,
+                    key=lambda data: self._sort_value(data, sort_field),
+                    reverse=reverse,
+                )
 
         self.data = filtered
         return filtered
@@ -335,7 +435,10 @@ class TypeWidget(QWidget):
         self._data_loaded = True
 
     def _load_data(self):
-        self.all_data = [self.calculate(data) for data in self.db.get(self.table_name, self.model_cls)]
+        self.all_data = [
+            self.calculate(data)
+            for data in self.db.get(self.table_name, self.model_cls)
+        ]
         self.data = self.apply_view_options(self.all_data)
 
     def refresh(self):
@@ -345,7 +448,7 @@ class TypeWidget(QWidget):
         self.load()
         # Refresh gallery view as well
         try:
-            if hasattr(self, 'gallery'):
+            if hasattr(self, "gallery"):
                 self.gallery.refresh(self.data)
         except Exception:
             pass
@@ -357,14 +460,16 @@ class TypeWidget(QWidget):
                 self.gallery.refresh(self.data)
         except Exception:
             pass
-    
+
     def calculate(self, data):
-        if self.table_name == "manga" :
+        self._sync_title_fields(data)
+
+        if self.table_name == "manga":
             data.nb_ep_vu = data.ep_act
-        
+
         data.etat = "FINI" if data.note != "" else "EN COURS"
 
-        if self.table_name == "serie" :
+        if self.table_name == "serie":
             nb_saison = 0
             data.nb_ep_tot = 0
             data.nb_ep_vu = 0
@@ -373,88 +478,92 @@ class TypeWidget(QWidget):
                     if getattr(data, col.lower(), 0) != "":
                         nb_saison += 1
                         data.nb_ep_tot += int(getattr(data, col.lower(), 0))
-                if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"] :
+                if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"]:
                     if getattr(data, col.lower(), 0) != "":
                         data.nb_ep_vu += int(getattr(data, col.lower(), 0))
             data.nb_saison = nb_saison
-        
-        if self.table_name in ["film", "serie_film"] :
-            if data.updated == "PAS SORTI" :
+
+        if self.table_name in ["film", "serie_film"]:
+            if data.updated == "PAS SORTI":
                 data.nb_ep_tot = 0
                 data.nb_vu = 0
-                data.nb_ep_vu= 0
-            elif data.etat == "EN COURS" :
+                data.nb_ep_vu = 0
+            elif data.etat == "EN COURS":
                 data.nb_ep_tot = 1
                 data.nb_ep_vu = 0
                 data.nb_vu = 0
-            elif data.etat == "FINI" :
+            elif data.etat == "FINI":
                 data.nb_ep_vu = len(str(data.annee_vu).split(","))
                 data.nb_ep_tot = data.nb_ep_vu
                 data.nb_vu = data.nb_ep_vu
-        
+
         data.nb_ep_res = int(data.nb_ep_tot) - int(data.nb_ep_vu)
-        
-        if self.table_name == "serie_film" :
-            data.titre = data.nom_serie + " - " + data.film
-        
-        if data.nb_ep_tot == 0 :
+
+        if self.table_name == "serie_film":
+            self._sync_title_fields(data)
+
+        if data.nb_ep_tot == 0:
             data.updated = "PAS SORTI"
             data.etat = ""
-        elif data.nb_ep_tot > data.nb_ep_vu :
+        elif data.nb_ep_tot > data.nb_ep_vu:
             data.etat = "EN COURS"
-        elif data.nb_ep_tot == data.nb_ep_vu :
+        elif data.nb_ep_tot == data.nb_ep_vu:
             data.etat = "FINI"
-        
-        if self.table_name == "manga" : 
+
+        if self.table_name == "manga":
             data.nb_ep_vu = int(data.ep_act) - int(data.ep_deb)
             data.nb_ep_res = int(data.nb_ep_tot) - int(data.ep_act)
-        
+
         self.db.update(self.table_name, data)
         return data
-    
-    def add_import(self, df: pd.DataFrame) :
+
+    def add_import(self, df: pd.DataFrame):
         df_columns = set(df.columns)
         required_columns = set([col.lower() for col in self.columns])
-        
+
         if not required_columns.issubset(df_columns):
             missing = required_columns - df_columns
             QMessageBox.warning(self, "Erreur", f"Colonnes manquantes : {missing}")
             return
-        
+
         dialog = QDialog(self)
         dialog.setWindowTitle("Importer des données")
         dialog.setGeometry(100, 100, 400, 150)
-        
+
         layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel(f"Importer {len(df)} série(s).\nVoulez-vous remplacer toutes les données existantes ?"))
-        
+        layout.addWidget(
+            QLabel(
+                f"Importer {len(df)} série(s).\nVoulez-vous remplacer toutes les données existantes ?"
+            )
+        )
+
         buttons_layout = QHBoxLayout()
-        
+
         replace_button = QPushButton("Remplacer")
         replace_button.setStyleSheet("background-color: orange;")
         replace_button.clicked.connect(lambda: self.import_and_replace(df, dialog))
-        
+
         add_button = QPushButton("Ajouter")
         add_button.setStyleSheet("background-color: green;")
         add_button.clicked.connect(lambda: self._import_add(df, dialog))
-        
+
         cancel_button = QPushButton("Annuler")
         cancel_button.setStyleSheet("background-color: gray;")
         cancel_button.clicked.connect(dialog.reject)
-        
+
         buttons_layout.addWidget(replace_button)
         buttons_layout.addWidget(add_button)
         buttons_layout.addWidget(cancel_button)
-        
+
         layout.addLayout(buttons_layout)
         dialog.exec_()
-    
+
     def import_and_replace(self, df: pd.DataFrame, dialog: QDialog):
         for data in self.data:
             self.db.delete(self.table_name, self.model_cls(id=data.id))
-        
+
         self._import_add(df, dialog)
-    
+
     def _import_add(self, df: pd.DataFrame, dialog: QDialog):
         for _, row in df.iterrows():
             data = self.model_cls()
@@ -465,19 +574,23 @@ class TypeWidget(QWidget):
                     if pd.isna(value):
                         value = ""
                     setattr(data, col_lower, value)
-            
+
             data = self.calculate(data)
             self.db.add(self.table_name, data)
-        
+
         self.refresh()
         self.parent().home_widget.refresh()
         dialog.accept()
-        QMessageBox.information(self, "Succès", f"{len(df)} série(s) importée(s) avec succès !")
-    
+        QMessageBox.information(
+            self, "Succès", f"{len(df)} série(s) importée(s) avec succès !"
+        )
+
     def set_data(self, data, row):
         for i, col in enumerate(self.columns):
             value = getattr(data, col.lower(), "")
-            self.table.setItem(row, i, QTableWidgetItem("" if value is None else str(value)))
+            self.table.setItem(
+                row, i, QTableWidgetItem("" if value is None else str(value))
+            )
 
     def edit_row(self, row, _column):
         if 0 <= row < len(self.data):
@@ -490,66 +603,67 @@ class TypeWidget(QWidget):
             self.set_data(data, row)
         self.table.resizeRowsToContents()
         self.table.setUpdatesEnabled(True)
-    
+
     def add(self, data):
         cal_data = self.calculate(data)
         self.db.add(self.table_name, cal_data)
         self.refresh()
-    
+
     def open_edit_window(self, data):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
-        dialog = EditData(self.get_addable_columns(), values=values, field_types=field_types, content_type=self.table_name, field_options=self.field_options, parent=self)
+        dialog = EditData(
+            self.get_addable_columns(),
+            values=values,
+            field_types=field_types,
+            content_type=self.table_name,
+            field_options=self.field_options,
+            parent=self,
+        )
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()
-            # Handle title change: rename image file if present
-            old_title = getattr(data, 'titre', '')
-            new_title = updated_values.get('Titre', old_title)
-            if new_title != old_title and old_title != "":
-                try:
-                    base_old = sanitize_filename(old_title)
-                    base_new = sanitize_filename(new_title)
-                    exts = ['.jpg', '.jpeg', '.png', '.webp']
-                    for ext in exts:
-                        old_path = Path(self.data_folder) / (base_old + ext)
-                        if old_path.exists():
-                            new_path = Path(self.data_folder) / (base_new + ext)
-                            # Ensure parent exists
-                            Path(self.data_folder).mkdir(parents=True, exist_ok=True)
-                            try:
-                                old_path.rename(new_path)
-                            except Exception:
-                                pass
-                            break
-                except Exception:
-                    pass
+            old_title = getattr(data, "titre", "")
 
             for col in self.columns:
-                setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
+                setattr(
+                    data,
+                    col.lower(),
+                    updated_values.get(col, getattr(data, col.lower(), "")),
+                )
+
             cal_data = self.calculate(data)
+            new_title = getattr(cal_data, "titre", old_title)
+            rename_title_image(self.data_folder, old_title, new_title)
+
             self.db.update(self.table_name, cal_data)
             self.refresh()
-    
+
     def get_addable_columns(self):
         return [col for col in self.columns if col not in self.hidden_columns]
 
-    def open_add_window(self) :
+    def open_add_window(self):
         addable_columns = self.get_addable_columns()
-        add_window = AddData(addable_columns, content_type=self.table_name, field_options=self.field_options)
+        add_window = AddData(
+            addable_columns,
+            content_type=self.table_name,
+            field_options=self.field_options,
+        )
         add_window.exec_()
         new_data = add_window.get_data()
-        
-        if self.table_name == "serie_film" :
-            new_data["Titre"] = new_data.get("Nom série", "") + " - " + new_data.get("Film", "")
-        
-        if new_data["Titre"] != "" :
+
+        if self.table_name == "serie_film":
+            new_data["Titre"] = (
+                new_data.get("Nom série", "") + " - " + new_data.get("Film", "")
+            )
+
+        if new_data["Titre"] != "":
             data = self.model_cls()
-            for col in self.columns :
+            for col in self.columns:
                 setattr(data, col.lower(), new_data.get(col, 0))
-            
+
             self.add(data)
         self.parent().home_widget.refresh()
-    
+
     def delete_selected(self):
         data = self.data[self.table.currentRow()]
         if data is None:

@@ -2,6 +2,8 @@
   "data_folder": "/home/florian/Documents/Data/CulturApp/",
   "columns": {
     "film" :[
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Type",
       "Genre",
@@ -18,25 +20,9 @@
       "nb_ep_tot",
       "Notice"
     ],
-    "serie_film" : [
-      "Nom_serie",
-      "Film",
-      "Titre",
-      "Type",
-      "Genre",
-      "VO",
-      "Cinema",
-      "Updated",
-      "Etat",
-      "Annee_vu",
-      "Nb_vu",
-      "Note",
-      "nb_ep_vu",
-      "nb_ep_res",
-      "nb_ep_tot",
-      "Notice"
-    ],
     "serie" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Type",
       "Genre",
@@ -70,6 +56,8 @@
       "Notice"
     ],
     "roman" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "auteur",
       "type",
@@ -85,6 +73,8 @@
       "Notice"
     ],
     "manga" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type", 
@@ -104,6 +94,8 @@
       "Notice"
     ],
     "webtoon" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type",
@@ -118,6 +110,8 @@
       "Notice"
     ],
     "wattpad" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type",
@@ -262,20 +256,15 @@
   },
   "hidden_columns": {
     "film" : [
+      "Titre",
       "Etat",
       "Nb_vu",
       "nb_ep_vu",
       "nb_ep_res",
       "nb_ep_tot"
     ],
-    "serie_film" : [
-      "Titre",
-      "Etat",
-      "nb_ep_vu",
-      "nb_ep_res",
-      "nb_ep_tot"
-    ],
     "serie": [
+      "Titre",
       "Etat",
       "Nb_saison",
       "Nb_ep_vu",
@@ -283,19 +272,23 @@
       "Nb_ep_tot"
     ],
     "roman" : [
+      "Titre",
       "Etat",
       "nb_ep_res"
     ],
     "manga" : [
+      "Titre",
       "Etat",
       "Nb_ep_vu",
       "Nb_ep_res"
     ],
     "webtoon" : [
+      "Titre",
       "Etat",
       "nb_ep_res"
     ],
     "wattpad" : [
+      "Titre",
       "Etat",
       "nb_ep_res"
     ]

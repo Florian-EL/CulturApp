@@ -15,14 +15,12 @@ from src.models.film import Film
 from src.models.manga import Manga
 from src.models.roman import Roman
 from src.models.serie import Serie
-from src.models.serie_film import SerieFilm
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
 
 
 MODEL_CLASSES = {
     "film": Film,
-    "serie_film": SerieFilm,
     "serie": Serie,
     "roman": Roman,
     "manga": Manga,
@@ -33,7 +31,6 @@ MODEL_CLASSES = {
 def load_type_config() -> List[tuple]:
     return [
         ("Films", "film", Film, 120),
-        ("Séries films", "serie_film", SerieFilm, 120),
         ("Séries", "serie", Serie, 25),
         ("Romans", "roman", Roman, 15),
         ("Mangas", "manga", Manga, 10),
@@ -62,15 +59,7 @@ def _format_duration(minutes: int) -> str:
 
 
 def _get_work_key(item: Any, label: str) -> str:
-    if label == "Séries films":
-        value = getattr(item, "nom_serie", None)
-    else:
-        value = getattr(item, "titre", None)
-
-    if value in (None, ""):
-        value = getattr(item, "nom_serie", None)
-    if value in (None, ""):
-        value = getattr(item, "titre", None)
+    value = getattr(item, "titre_principal", None)
 
     return str(value).strip().lower()
 
@@ -127,8 +116,8 @@ def compute_type_stats(label: str, items: List[Any], avg_minutes_per_ep: int) ->
         "Écart-\ntype": f"{std_dev:.2f}",
         "Note\nmin": f"{min_note:.2f}",
         "Note\nmax": f"{max_note:.2f}",
-        "1 Épisode": round(1/e_tot, 2) if e_tot else 0.0,
-        "1 Oeuvre": round(1/works_total, 2) if works_total else 0.0,
+        "1 Épisode\n%": round(1/e_tot*100, 3) if e_tot else 0.0,
+        "1 Oeuvre\n%": round(1/works_total*100, 3) if works_total else 0.0,
         "Durée /\népisode\n(min)": avg_minutes_per_ep,
         "Temps\nvu": _format_duration(e_vu * avg_minutes_per_ep),
         "Temps\nrestant": _format_duration(e_res * avg_minutes_per_ep),
@@ -341,8 +330,8 @@ class HomeWidget(QWidget):
             "Écart-\ntype",
             "Note\nmin",
             "Note\nmax",
-            "1 Épisode",
-            "1 Oeuvre",
+            "1 Épisode\n%",
+            "1 Oeuvre\n%",
             "Durée /\népisode\n(min)",
             "Temps\nvu",
             "Temps\nrestant",
@@ -386,8 +375,8 @@ class HomeWidget(QWidget):
             "Écart-\ntype": "-",
             "Note\nmin": "-",
             "Note\nmax": "-",
-            "1 Épisode": round(sum(row["1 Épisode"] for row in rows) / len(rows), 2) if rows else 0.0,
-            "1 Oeuvre": round(sum(row["1 Oeuvre"] for row in rows) / len(rows), 2) if rows else 0.0,
+            "1 Épisode\n%": round(sum(row["1 Épisode\n%"] for row in rows) / len(rows), 3) if rows else 0.0,
+            "1 Oeuvre\n%": round(sum(row["1 Oeuvre\n%"] for row in rows) / len(rows), 3) if rows else 0.0,
             "Durée /\népisode\n(min)": "-",
             "Temps\nvu": _format_duration(sum(row["Épisodes\nvus"] for row in rows) * 25),
             "Temps\nrestant": _format_duration(sum(row["Épisodes\nrestants"] for row in rows) * 25),
