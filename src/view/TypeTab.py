@@ -287,6 +287,32 @@ class TypeWidget(QWidget):
             return ""
         return str(value).strip().lower()
 
+    def _normalize_title_secondaire(self, title_secondaire):
+        title_secondaire = (title_secondaire or "").strip()
+
+        if not title_secondaire:
+            return ""
+
+        if " - " in title_secondaire:
+            num, reste = title_secondaire.split(" - ", 1)
+            num = num.strip()
+            reste = reste.strip()
+
+            if num:
+                try:
+                    num_value = int(num)
+                except ValueError:
+                    return title_secondaire
+
+                return f"{num_value:03d} - {reste}" if reste else f"{num_value:03d}"
+
+            return title_secondaire
+
+        if title_secondaire.isdigit():
+            return f"{int(title_secondaire):03d}"
+
+        return title_secondaire
+
     def _matches_filter(self, data, field_name, query):
         if not query:
             return True
@@ -337,8 +363,7 @@ class TypeWidget(QWidget):
             if not title_principal:
                 title_principal = legacy_title
 
-        if self.table_name != "serie_film":
-            title_secondaire = title_secondaire.strip()
+        title_secondaire = self._normalize_title_secondaire(title_secondaire)
 
         data.titre_principal = title_principal
         data.titre_secondaire = title_secondaire
