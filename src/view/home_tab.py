@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import statistics
 from pathlib import Path
@@ -83,13 +84,32 @@ def compute_type_stats(label: str, items: List[Any], avg_minutes_per_ep: int) ->
     unique_work_keys = set(work_keys)
     works_total = len(unique_work_keys) or max(count, 1)
 
+    work_stats = defaultdict(lambda: {
+        "ep_vu": 0,
+        "ep_res": 0,
+    })
+
+    for item in items:
+        work_key = _get_work_key(item, label)
+
+        if work_key not in unique_work_keys:
+            continue
+
+        work_stats[work_key]["ep_vu"] += _safe_int(
+            getattr(item, "nb_ep_vu", 0)
+        )
+        work_stats[work_key]["ep_res"] += _safe_int(
+            getattr(item, "nb_ep_res", 0)
+        )
+
+    # Une œuvre est vue lorsque tous ses épisodes sont vus
     seen_work_keys = {
-        _get_work_key(item, label)
-        for item in items
-        if _safe_int(getattr(item, "nb_ep_vu", 0)) > 0
-        and _safe_int(getattr(item, "nb_ep_res", 0)) == 0
-        and _get_work_key(item, label) in unique_work_keys
+        work_key
+        for work_key, stats in work_stats.items()
+        if stats["ep_vu"] > 0
+        and stats["ep_res"] == 0
     }
+
     works_seen = len(seen_work_keys)
 
     works_remaining = max(0, works_total - works_seen)
