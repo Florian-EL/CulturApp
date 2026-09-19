@@ -38,6 +38,7 @@ class TypeWidget(QWidget):
         data_folder,
         initial_sort_rules=None,
         field_options=None,
+        parent=None
     ):
         super().__init__()
 
@@ -49,6 +50,7 @@ class TypeWidget(QWidget):
         self.data_folder = data_folder
         self.initial_sort_rules = initial_sort_rules or []
         self.field_options = field_options or {}
+        self.parent_widget = parent
 
         layout = QHBoxLayout(self)
         layout.setSpacing(12)
@@ -471,12 +473,8 @@ class TypeWidget(QWidget):
         self._load_data()
         self.table.setRowCount(0)
         self.load()
-        # Refresh gallery view as well
-        try:
-            if hasattr(self, "gallery"):
-                self.gallery.refresh(self.data)
-        except Exception:
-            pass
+        self.gallery.refresh(self.data)
+        self.parent_widget.home_widget.refresh()
 
     def on_subtab_changed(self, index):
         # If switching to gallery tab, refresh its content
@@ -676,10 +674,9 @@ class TypeWidget(QWidget):
         add_window.exec_()
         new_data = add_window.get_data()
 
-        if self.table_name == "serie_film":
-            new_data["Titre"] = (
-                new_data.get("Nom série", "") + " - " + new_data.get("Film", "")
-            )
+        new_data["Titre"] = (
+            new_data.get("Nom série", "") + " - " + new_data.get("Film", "")
+        )
 
         if new_data["Titre"] != "":
             data = self.model_cls()
@@ -687,7 +684,6 @@ class TypeWidget(QWidget):
                 setattr(data, col.lower(), new_data.get(col, 0))
 
             self.add(data)
-        self.parent().home_widget.refresh()
 
     def delete_selected(self):
         data = self.data[self.table.currentRow()]
