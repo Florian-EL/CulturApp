@@ -675,10 +675,10 @@ class TypeWidget(QWidget):
         new_data = add_window.get_data()
 
         new_data["Titre"] = (
-            new_data.get("Nom série", "") + " - " + new_data.get("Film", "")
+            new_data.get("titre_principal", "") + " - " + new_data.get("titre_secondaire", "")
         )
 
-        if new_data["Titre"] != "":
+        if new_data["titre_principal"] != "":
             data = self.model_cls()
             for col in self.columns:
                 setattr(data, col.lower(), new_data.get(col, 0))
