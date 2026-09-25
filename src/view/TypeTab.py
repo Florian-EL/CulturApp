@@ -1,4 +1,5 @@
 from dataclasses import fields
+import re
 
 import pandas as pd
 from PySide6.QtCore import (
@@ -291,29 +292,28 @@ class TypeWidget(QWidget):
 
     def _normalize_title_secondaire(self, title_secondaire):
         title_secondaire = (title_secondaire or "").strip()
-
         if not title_secondaire:
             return ""
 
-        if " - " in title_secondaire:
-            num, reste = title_secondaire.split(" - ", 1)
-            num = num.strip()
-            reste = reste.strip()
+        normalized = title_secondaire.replace("–", "-").replace("—", "-")
+        normalized = re.sub(r"\s+", " ", normalized).strip()
 
-            if num:
-                try:
-                    num_value = int(num)
-                except ValueError:
-                    return title_secondaire
+        if re.fullmatch(r"\d+", normalized):
+            return f"{int(normalized):03d}"
 
-                return f"{num_value:03d} - {reste}" if reste else f"{num_value:03d}"
+        match_with_colon = re.fullmatch(r"\s*(\d+)\s*:\s*(.*)\s*", normalized)
+        if match_with_colon:
+            num_value = int(match_with_colon.group(1))
+            reste = match_with_colon.group(2).strip()
+            return f"{num_value:03d} : {reste}" if reste else f"{num_value:03d}"
 
-            return title_secondaire
+        match_with_space = re.fullmatch(r"\s*(\d+)\s+(.*)\s*", normalized)
+        if match_with_space:
+            num_value = int(match_with_space.group(1))
+            reste = match_with_space.group(2).strip()
+            return f"{num_value:03d} : {reste}" if reste else f"{num_value:03d}"
 
-        if title_secondaire.isdigit():
-            return f"{int(title_secondaire):03d}"
-
-        return title_secondaire
+        return f"{normalized}"
 
     def _matches_filter(self, data, field_name, query):
         if not query:
