@@ -66,9 +66,9 @@
       "nb_ep_vu",
       "nb_ep_res",
       "nb_ep_tot",
-      "updated",
-      "etat",
-      "note",
+      "Updated",
+      "Etat",
+      "Note",
       "nb_vu",
       "Notice"
     ],
@@ -265,6 +265,7 @@
     ],
     "serie": [
       "Titre",
+      "Updated",
       "Etat",
       "Nb_saison",
       "Nb_ep_vu",

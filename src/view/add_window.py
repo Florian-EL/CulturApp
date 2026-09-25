@@ -1,5 +1,8 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QPushButton, QComboBox, QLabel, QHBoxLayout, QWidget
 
+from src.utils import resolve_field_options
+
+
 class AddData(QDialog) :
     def __init__(self, columns, content_type=None, field_options=None, parent=None):
         super().__init__(parent)
@@ -26,8 +29,8 @@ class AddData(QDialog) :
             row_layout.addWidget(label)
             
             # Check if this field has dropdown options
-            col_options = self.field_options.get(col, [])
-            
+            col_options = resolve_field_options(self.field_options, col)
+
             if col_options:
                 # Use ComboBox for fields with options
                 combo_box = QComboBox()

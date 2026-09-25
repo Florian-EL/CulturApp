@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.utils import resolve_field_options
+
 
 class EditData(QDialog):
     def __init__(self, columns, values=None, field_types=None, content_type=None, field_options=None, parent=None):
@@ -43,8 +45,8 @@ class EditData(QDialog):
             label.setFixedWidth(140)
 
             # Check if this field has dropdown options
-            col_options = self.field_options.get(col, [])
-            
+            col_options = resolve_field_options(self.field_options, col)
+
             if col_options:
                 # Use ComboBox for fields with options
                 input_field = QComboBox()
