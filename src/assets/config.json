@@ -2,6 +2,8 @@
   "data_folder": "/home/florian/Documents/Data/CulturApp/",
   "columns": {
     "film" :[
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Type",
       "Genre",
@@ -16,57 +18,31 @@
       "Sortie",
       "nb_ep_vu",
       "nb_ep_res",
-      "nb_ep_tot"
-    ],
-    "serie_film" : [
-      "Nom_serie",
-      "Film",
-      "Titre",
-      "Type",
-      "Genre",
-      "VO",
-      "Cinema",
-      "Updated",
-      "Etat",
-      "Annee_vu",
-      "Nb_vu",
-      "Note",
-      "nb_ep_vu",
-      "nb_ep_res",
-      "nb_ep_tot"
+      "nb_ep_tot",
+      "Notice"
     ],
     "serie" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
+      "Studio",
       "Type",
       "Genre",
       "VO",
       "Updated",
       "Etat",
-      "Nb_saison",
       "Nb_ep_vu",
       "Nb_ep_res",
       "Nb_ep_tot",
       "Nb_vu",
       "Note",
+      "Priorite",
       "Sortie",
-      "S1_vu",
-      "S1_tot",
-      "S2_vu",
-      "S2_tot",
-      "S3_vu",
-      "S3_tot",
-      "S4_vu",
-      "S4_tot",
-      "S5_vu",
-      "S5_tot",
-      "S6_vu",
-      "S6_tot",
-      "S7_vu",
-      "S7_tot",
-      "S8_vu",
-      "S8_tot"
+      "Notice"
     ],
     "roman" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "auteur",
       "type",
@@ -75,12 +51,15 @@
       "nb_ep_vu",
       "nb_ep_res",
       "nb_ep_tot",
-      "updated",
-      "etat",
-      "note",
-      "nb_vu"
+      "Updated",
+      "Etat",
+      "Note",
+      "nb_vu",
+      "Notice"
     ],
     "manga" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type", 
@@ -96,9 +75,12 @@
       "Etat", 
       "Note",
       "Nb_vu",
-      "Site"
+      "Site",
+      "Notice"
     ],
     "webtoon" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type",
@@ -109,9 +91,12 @@
       "nb_ep_vu",
       "nb_ep_res",
       "nb_ep_tot",
-      "nb_vu"
+      "nb_vu",
+      "Notice"
     ],
     "wattpad" : [
+      "titre_principal",
+      "titre_secondaire",
       "Titre",
       "Auteur",
       "Type",
@@ -122,46 +107,184 @@
       "Updated",
       "Etat",
       "nb_vu",
-      "Note"
+      "Note",
+      "Notice"
+    ],
+    "citation": [
+      "Citation",
+      "Oeuvre",
+      "Personnage",
+      "Artiste"
+    ]
+  },
+  "initial_sort": {
+    "film": [
+      {
+        "field": "updated",
+        "order": "desc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "serie_film": [
+      {
+        "field": "updated",
+        "order": "desc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "serie": [
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "priorite",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "roman": [
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "manga": [
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "webtoon": [
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "wattpad": [
+      {
+        "field": "etat",
+        "order": "asc"
+      },
+      {
+        "field": "updated",
+        "order": "asc"
+      },
+      {
+        "field": "titre",
+        "order": "asc"
+      }
+    ],
+    "citation": [
+      {
+        "field": "oeuvre",
+        "order": "asc"
+      },
+      {
+        "field": "artiste",
+        "order": "asc"
+      },
+      {
+        "field": "personnage",
+        "order": "asc"
+      },
+      {
+        "field": "citation",
+        "order": "asc"
+      }
     ]
   },
   "hidden_columns": {
     "film" : [
+      "Titre",
       "Etat",
       "Nb_vu",
       "nb_ep_vu",
       "nb_ep_res",
       "nb_ep_tot"
     ],
-    "serie_film" : [
+    "serie": [
       "Titre",
       "Etat",
-      "nb_ep_vu",
-      "nb_ep_res",
-      "nb_ep_tot"
-    ],
-    "serie": [
-      "Etat",
-      "Nb_ep_vu",
-      "Nb_ep_res",
-      "Nb_ep_tot"
+      "Nb_ep_res"
     ],
     "roman" : [
+      "Titre",
       "Etat",
       "nb_ep_res"
     ],
     "manga" : [
+      "Titre",
       "Etat",
       "Nb_ep_vu",
       "Nb_ep_res"
     ],
     "webtoon" : [
+      "Titre",
       "Etat",
       "nb_ep_res"
     ],
     "wattpad" : [
+      "Titre",
       "Etat",
       "nb_ep_res"
     ]
+  },
+  "field_options": {
+    "Type": ["ANIME", "S_F_ANIME", "S_ANIME", "P_MANGA", "MANGA", "WEBTOON", "WATTPAD", 
+    "DOCUMENTAIRE", "S_FILM", "S_DOCUMENTAIRE", "P_MANHWA", "MANHWA","NOCTELLER",
+    "FILM", "S_F_DOCUMENTAIRE", "S_SERIE", "P_ROMAN", "ROMAN", "S_F_CONCERT", "S_KDRAMA",
+    "P_BD", "MANHUA", "P_ROMAN-G", "P_MANHUA"],
+    "Genre": ["BL", "Comedy", "Animation", "Romance", "SF", "Sport", "Horreur", "Guerre",
+    "Historique", "Fantastique", "Voyage", "Réalisme", "Musique", "Slice of Life",
+    "Espionnage", "Art", "Action", "Policier", "Art martiaux", "Post apocalyptique"],
+    "VO": ["FRA", "ENG", "JAP", "CHI", "KOR", "NVG", "THAI", "IND"],
+    "Cinema": ["OUI", "NON"],
+    "Updated": ["EN COURS", "FINI", "PAS SORTI"]
   }
 }

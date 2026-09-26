@@ -1,17 +1,17 @@
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QFileDialog, QMessageBox
 )
-from PyQt5.QtCore import Qt
+from PySide6.QtCore import Qt
 from src.services.config_manager import ConfigManager
 
 
 class SettingsDialog(QDialog):
     """Dialogue pour configurer les paramètres de l'application"""
     
-    def __init__(self, parent=None):
+    def __init__(self, test, parent=None):
         super().__init__(parent)
-        self.config_manager = ConfigManager()
+        self.config_manager = ConfigManager(test)
         self.init_ui()
     
     def init_ui(self):

@@ -1,17 +1,30 @@
-from pathlib import Path
 import sqlite3
-
 from dataclasses import asdict, fields, is_dataclass
+from pathlib import Path
 
+from src.models.citation import Citation
 from src.models.film import Film
-from src.models.serie_film import SerieFilm
-from src.models.serie import Serie
-from src.models.roman import Roman
 from src.models.manga import Manga
-from src.models.webtoon import Webtoon
+from src.models.roman import Roman
+from src.models.serie import Serie
 from src.models.wattpad import Wattpad
-
+from src.models.webtoon import Webtoon
 from src.utils import MediaType
+
+
+def load_tables_for_display(db_path, table_names, result_queue):
+    """Read library tables in a process that has no Qt or UI state."""
+    connection = sqlite3.connect(db_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        result_queue.put({
+            table_name: [dict(row) for row in connection.execute(
+                f"SELECT * FROM {table_name} ORDER BY titre"
+            )]
+            for table_name in table_names
+        })
+    finally:
+        connection.close()
 
 
 class DatabaseManager:
@@ -28,10 +41,6 @@ class DatabaseManager:
             MediaType.FILM: {
                 "table": "film",
                 "class": Film
-            },
-            MediaType.SERIEFILM: {
-                "table": "serie_film",
-                "class": SerieFilm
             },
             MediaType.SERIE: {
                 "table": "serie",
@@ -63,6 +72,8 @@ class DatabaseManager:
         
         for config in self.TABLE_MAPPING.values():
             self.sync_table(config["table"], config["class"])
+
+        self._citation_table_ready = False
     
     def close(self):
         self.conn.close()
@@ -98,6 +109,11 @@ class DatabaseManager:
                 )
                 
         self.conn.commit()
+
+    def ensure_citation_table(self):
+        if not self._citation_table_ready:
+            self.sync_table("citation", Citation)
+            self._citation_table_ready = True
     
     def model_to_row(self, obj):
         if not is_dataclass(obj):
@@ -113,6 +129,8 @@ class DatabaseManager:
         return model_cls(**row)
     
     def add(self, table: str, obj):
+        if table == "citation":
+            self.ensure_citation_table()
         cursor = self.conn.cursor()
         
         data = self.model_to_row(obj)
@@ -128,6 +146,8 @@ class DatabaseManager:
         obj.id = cursor.lastrowid
     
     def delete(self, table: str, obj):
+        if table == "citation":
+            self.ensure_citation_table()
         cursor = self.conn.cursor()
         
         sql = f"DELETE FROM {table} WHERE id = ?"
@@ -135,10 +155,12 @@ class DatabaseManager:
         self.conn.commit()
 
     def update(self, table: str, obj):
+        if table == "citation":
+            self.ensure_citation_table()
         cursor = self.conn.cursor()
 
         data = self.model_to_row(obj)
-        assignments = ", ".join(f"{column} = ?" for column in data.keys())
+        assignments = ", ".join(f"{column} = ?" for column in data)
         values = list(data.values()) + [obj.id]
 
         sql = f"UPDATE {table} SET {assignments} WHERE id = ?"
@@ -146,9 +168,12 @@ class DatabaseManager:
         self.conn.commit()
     
     def get(self, table: str, model_cls):
+        if table == "citation":
+            self.ensure_citation_table()
         cursor = self.conn.cursor()
-        
-        cursor.execute(f"SELECT * FROM {table} ORDER BY titre")
+
+        order_column = "oeuvre" if table == "citation" else "titre"
+        cursor.execute(f"SELECT * FROM {table} ORDER BY {order_column}")
         rows = cursor.fetchall()
         
         return [self.row_to_model(model_cls, dict(row)) for row in rows]

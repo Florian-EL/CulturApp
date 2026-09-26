@@ -4,10 +4,10 @@ from urllib.request import urlretrieve
 
 from dataclasses import fields
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPixmap
+from PySide6.QtCore import Qt, Signal, QTimer, QEvent
+from PySide6.QtGui import QPixmap
 
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget,
     QLabel,
     QPushButton,
@@ -18,6 +18,8 @@ from PyQt5.QtWidgets import (
     QInputDialog,
     QScrollArea,
     QFrame,
+    QApplication,
+    QMessageBox,
 )
 
 from src.view.edit_window import EditData
@@ -30,8 +32,31 @@ def sanitize_filename(name: str) -> str:
     return name.strip()
 
 
+def rename_title_image(data_folder, old_title: str, new_title: str) -> bool:
+    if not old_title or new_title == old_title:
+        return False
+
+    try:
+        data_path = Path(data_folder)
+        base_old = sanitize_filename(old_title)
+        base_new = sanitize_filename(new_title)
+        exts = ['.jpg', '.jpeg', '.png', '.webp']
+
+        for ext in exts:
+            old_path = data_path / (base_old + ext)
+            if old_path.exists():
+                new_path = data_path / (base_new + ext)
+                data_path.mkdir(parents=True, exist_ok=True)
+                old_path.rename(new_path)
+                return True
+    except Exception:
+        return False
+
+    return False
+
+
 class ClickableLabel(QLabel):
-    clicked = pyqtSignal()
+    clicked = Signal()
 
     def mousePressEvent(self, event):
         try:
@@ -49,16 +74,17 @@ class GalleryWidget(QWidget):
     IMAGE_WIDTH = 160
     IMAGE_HEIGHT = 240
 
-    def __init__(self, db, table_name, model_cls, columns, data_folder: Path, parent=None):
+    def __init__(self, db, table_name, model_cls, columns, data_folder: Path, parent=None, field_options=None):
         super().__init__(parent)
         self.parent = parent
-        
+        self.items = None
 
         self.db = db
         self.table_name = table_name
         self.model_cls = model_cls
         self.columns = columns
         self.data_folder = Path(data_folder) if data_folder else Path(".")
+        self.field_options = field_options or {}
 
         main_layout = QVBoxLayout(self)
 
@@ -75,91 +101,126 @@ class GalleryWidget(QWidget):
         self.grid.setContentsMargins(20, 20, 20, 20)
 
         self.scroll.setWidget(self.container)
-        self.refresh()
-
-    # ------------------------------------------------------------------
-    # Image helpers
-    # ------------------------------------------------------------------
+        self.scroll.viewport().installEventFilter(self)
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.timeout.connect(self._apply_refresh)
+        self._pending_items = None
+        self._refresh_requested = False
 
     def find_image(self, title: str):
-
+        
         base = sanitize_filename(title)
-
-        for ext in (
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".webp",
-        ):
-
+        
+        for ext in (".jpg", ".jpeg", ".png", ".webp"):
             candidate = self.data_folder / (base + ext)
-
             if candidate.exists():
                 return str(candidate)
-
+        
         return None
 
     def download_image_for(self, title: str, url: str):
-
         try:
-
             base = sanitize_filename(title)
-
             _, ext = os.path.splitext(url)
-
-            if ext.lower() not in (
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".webp",
-            ):
+            if ext in (".jpg", ".jpeg", ".png", ".webp"):
                 ext = ".jpg"
-
+            
             self.data_folder.mkdir(
                 parents=True,
                 exist_ok=True,
             )
-
+            
             target = self.data_folder / (base + ext)
-
             urlretrieve(url, str(target))
-
+            
             return str(target)
-
-        except Exception:
+        
+        except Exception as e :
+            print(e)
             return None
 
+    def download_image_from_clipboard(self, title: str, image=None):
+        if image is None:
+            clipboard = QApplication.clipboard()
+            image = clipboard.image()
+
+        if image is None or image.isNull():
+            return None
+
+        try:
+            base = sanitize_filename(title)
+            self.data_folder.mkdir(parents=True, exist_ok=True)
+            target = self.data_folder / f"{base}.jpg"
+            if image.save(str(target), "jpg"):
+                return str(target)
+        except Exception as exc:
+            print(exc)
+
+        return None
+
+    def choose_image_source(self):
+        clipboard = QApplication.clipboard()
+        clipboard_image = clipboard.image()
+        has_clipboard_image = clipboard_image is not None and not clipboard_image.isNull()
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Nouvelle image")
+        msg.setText("Choisir la source de l'image :")
+        msg.setIcon(QMessageBox.Question)
+
+        clipboard_btn = msg.addButton("Presse-papiers", QMessageBox.ActionRole)
+        url_btn = msg.addButton("URL", QMessageBox.ActionRole)
+        msg.addButton(QMessageBox.Cancel)
+
+        if not has_clipboard_image:
+            clipboard_btn.setEnabled(False)
+            clipboard_btn.setText("Presse-papiers (vide)")
+
+        msg.exec_()
+
+        if msg.clickedButton() == clipboard_btn and has_clipboard_image:
+            return "clipboard"
+        if msg.clickedButton() == url_btn:
+            return "url"
+        return None
+
     def request_and_download(self, data):
-
-        url, ok = QInputDialog.getText(
-            self,
-            "Nouvelle image",
-            "URL de l'image :",
-        )
-
-        if not (ok and url):
+        source = self.choose_image_source()
+        if source == "clipboard":
+            result = self.download_image_from_clipboard(getattr(data, "titre", ""))
+            if result:
+                self.refresh()
+            else:
+                QMessageBox.information(
+                    self,
+                    "Image non importée",
+                    "Aucune image n'a pu être récupérée depuis le presse-papiers.",
+                )
             return
 
-        result = self.download_image_for(
-            getattr(data, "titre", ""),
-            url,
-        )
+        if source == "url":
+            clipboard = QApplication.clipboard()
+            url = clipboard.text()
+            
+            
 
-        if result:
-            self.refresh()
+            result = self.download_image_for(
+                getattr(data, "titre", ""),
+                url,
+            )
 
-    # ------------------------------------------------------------------
-    # Small helpers
-    # ------------------------------------------------------------------
+            if result:
+                self.refresh()
 
     def get_author(self, data):
-
+        
         if hasattr(data, "auteur"):
             return getattr(data, "auteur")
-
+        
         if hasattr(data, "nom_serie"):
             return getattr(data, "nom_serie")
-
+        
         return ""
 
     def format_note(self, value):
@@ -172,7 +233,7 @@ class GalleryWidget(QWidget):
         
         stars = round(note / 4)
         stars = max(0, min(5, stars))
-
+        
         return "{}{}   {:.1f}/10".format(
             "★" * stars,
             "☆" * (5 - stars),
@@ -186,19 +247,48 @@ class GalleryWidget(QWidget):
             if widget is not None:
                 widget.deleteLater()
 
+    def eventFilter(self, source, event):
+        if source is self.scroll.viewport() and event.type() == QEvent.Resize:
+            self._schedule_refresh()
+        return super().eventFilter(source, event)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._schedule_refresh()
+
+    def _apply_refresh(self):
+        self._refresh_requested = False
+        self.refresh(self._pending_items)
+
+    def _schedule_refresh(self, items=None):
+        self._pending_items = items
+        if not self._refresh_requested:
+            self._refresh_requested = True
+            QTimer.singleShot(0, self._schedule_refresh)
+
     def compute_columns(self):
-        viewport_width = self.scroll.viewport().width()
+        viewport_width = self.scroll.viewport().width() or self.width()
+        if viewport_width <= 0:
+            return 1
+
         spacing = self.grid.spacing()
-        cols = max(1, viewport_width // (self.CARD_WIDTH + spacing),)
+        available_width = max(1, viewport_width - 40)
+        cols = max(1, available_width // (self.CARD_WIDTH + spacing))
         return cols
 
-    def refresh(self):
-        self.clear_grid()
-        try:
-            datas = self.db.get(self.table_name, self.model_cls)
-        except Exception:
-            datas = []
+    def refresh(self, items=None):
+        if items is not None:
+            self.items = list(items)
 
+        self.clear_grid()
+
+        if self.items is None:
+            try:
+                self.items = list(self.db.get(self.table_name, self.model_cls))
+            except Exception:
+                self.items = []
+
+        datas = self.items or []
         cols = self.compute_columns()
         for index, data in enumerate(datas):
             row = index // cols
@@ -214,7 +304,7 @@ class GalleryWidget(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self.refresh()
+        self._schedule_refresh()
 
     def make_card(self, data):
         title = getattr(data, "titre", "")
@@ -415,7 +505,8 @@ class GalleryWidget(QWidget):
 
     def build_detail_content(self, data, dialog=None, scroll=None):
         content = QWidget()
-        content_layout = QVBoxLayout(content)
+        final_layout = QVBoxLayout(content)
+        content_layout = QHBoxLayout()
         content_layout.setContentsMargins(18, 18, 18, 18)
         content_layout.setSpacing(16)
 
@@ -443,7 +534,7 @@ class GalleryWidget(QWidget):
             if not pix.isNull():
                 img = QLabel()
                 img.setAlignment(Qt.AlignCenter)
-                img.setPixmap(pix.scaledToWidth(320, Qt.SmoothTransformation))
+                img.setPixmap(pix.scaledToHeight(600, Qt.SmoothTransformation))
                 header_layout.addWidget(img, alignment=Qt.AlignCenter)
 
         title_lbl = QLabel(title)
@@ -499,6 +590,7 @@ class GalleryWidget(QWidget):
             ("Auteur", author or "—", "text"),
             ("Pays", country_value or "—", "chip"),
             ("Sortie", getattr(data, "sortie", "") or "—", "text"),
+            ("Notice", getattr(data, "notice", "") or "—", "text"),
         ]
 
         if hasattr(data, "nb_saison") and getattr(data, "nb_saison", 0):
@@ -545,7 +637,7 @@ class GalleryWidget(QWidget):
         )
 
         content_layout.addLayout(sections_grid)
-        content_layout.addStretch()
+        # content_layout.addStretch()
 
         buttons = QHBoxLayout()
         edit_btn = QPushButton("Éditer")
@@ -562,11 +654,13 @@ class GalleryWidget(QWidget):
         if dialog is not None:
             close_btn.clicked.connect(dialog.accept)
 
-        buttons.addStretch()
+        # buttons.addStretch()
         buttons.addWidget(edit_btn)
         buttons.addWidget(image_btn)
         buttons.addWidget(close_btn)
-        content_layout.addLayout(buttons)
+        
+        final_layout.addLayout(content_layout)
+        final_layout.addLayout(buttons)
 
         return content
 
@@ -578,36 +672,19 @@ class GalleryWidget(QWidget):
     def open_edit_window(self, data, detail_dialog=None, detail_scroll=None):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
-        dialog = EditData(self.columns, values=values, field_types=field_types, parent=self)
+        dialog = EditData(self.parent.get_addable_columns(), values=values, field_types=field_types, content_type=self.table_name, field_options=self.field_options, parent=self)
 
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()
-            # Handle title change: rename image file if present
             old_title = getattr(data, 'titre', '')
-            new_title = updated_values.get('Titre', old_title)
-            if new_title != old_title and old_title != "":
-                try:
-                    base_old = sanitize_filename(old_title)
-                    base_new = sanitize_filename(new_title)
-                    exts = ['.jpg', '.jpeg', '.png', '.webp']
-                    for ext in exts:
-                        old_path = Path(self.data_folder) / (base_old + ext)
-                        if old_path.exists():
-                            new_path = Path(self.data_folder) / (base_new + ext)
-                            # Ensure parent exists
-                            Path(self.data_folder).mkdir(parents=True, exist_ok=True)
-                            try:
-                                old_path.rename(new_path)
-                            except Exception:
-                                pass
-                            break
-                except Exception:
-                    pass
 
             for col in self.columns:
                 setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
-            
+
             cal_data = self.parent.calculate(data)
+            new_title = getattr(cal_data, 'titre', old_title)
+            rename_title_image(self.data_folder, old_title, new_title)
+
             self.db.update(self.table_name, cal_data)
             self.refresh()
 
@@ -618,6 +695,7 @@ class GalleryWidget(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle(getattr(data, "titre", "Détails"))
         dialog.resize(920, 720)
+        dialog.showMaximized()
         dialog.setStyleSheet("""
         QDialog{
             background:#1f1f1f;

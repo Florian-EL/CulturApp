@@ -2,9 +2,11 @@ from dataclasses import dataclass
 
 @dataclass
 class Manga:
-    id        : int = 0
-    titre     : str = ""
-    auteur    : str = ""
+    id              : int = 0
+    titre_principal : str = ""
+    titre_secondaire: str = ""
+    titre           : str = ""
+    auteur          : str = ""
     type      : str = ""
     vo        : str = ""
     genre     : str = ""
@@ -19,3 +21,4 @@ class Manga:
     note      : float = 0
     nb_vu     : int = 0
     site      : str = ""
+    notice    : str = ""

@@ -1,11 +1,12 @@
+from collections import defaultdict
 import json
 import statistics
 from pathlib import Path
 from typing import List, Dict, Any
 
-from PyQt5.QtCore import Qt, QRect
-from PyQt5.QtGui import QColor, QPainter
-from PyQt5.QtWidgets import (
+from PySide6.QtCore import Qt, QRect
+from PySide6.QtGui import QColor, QPainter
+from PySide6.QtWidgets import (
     QVBoxLayout, QLabel, QGroupBox, QWidget,
     QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView,
     QProgressBar, QSizePolicy, QFrame, QGridLayout
@@ -15,14 +16,12 @@ from src.models.film import Film
 from src.models.manga import Manga
 from src.models.roman import Roman
 from src.models.serie import Serie
-from src.models.serie_film import SerieFilm
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
 
 
 MODEL_CLASSES = {
     "film": Film,
-    "serie_film": SerieFilm,
     "serie": Serie,
     "roman": Roman,
     "manga": Manga,
@@ -33,7 +32,6 @@ MODEL_CLASSES = {
 def load_type_config() -> List[tuple]:
     return [
         ("Films", "film", Film, 120),
-        ("Séries films", "serie_film", SerieFilm, 120),
         ("Séries", "serie", Serie, 25),
         ("Romans", "roman", Roman, 15),
         ("Mangas", "manga", Manga, 10),
@@ -62,15 +60,7 @@ def _format_duration(minutes: int) -> str:
 
 
 def _get_work_key(item: Any, label: str) -> str:
-    if label == "Séries films":
-        value = getattr(item, "nom_serie", None)
-    else:
-        value = getattr(item, "titre", None)
-
-    if value in (None, ""):
-        value = getattr(item, "nom_serie", None)
-    if value in (None, ""):
-        value = getattr(item, "titre", None)
+    value = getattr(item, "titre_principal", None)
 
     return str(value).strip().lower()
 
@@ -85,22 +75,43 @@ def compute_type_stats(label: str, items: List[Any], avg_minutes_per_ep: int) ->
     if e_tot <= 0:
         e_tot = max(count, 1)
 
-    work_keys = [
-        _get_work_key(item, label)
-        for item in items
-        if _get_work_key(item, label)
-        and _safe_int(getattr(item, "nb_ep_tot", 0)) != 0
-    ]
+    work_keys = []
+    for item in items:
+        work_key = _get_work_key(item, label)
+        if work_key and _safe_int(getattr(item, "nb_ep_tot", 0)) != 0:
+            work_keys.append(work_key)
+
     unique_work_keys = set(work_keys)
     works_total = len(unique_work_keys) or max(count, 1)
 
-    works_seen = len({
-        _get_work_key(item, label)
-        for item in items
-        if _safe_int(getattr(item, "nb_ep_res", 0)) == 0
-        and _safe_int(getattr(item, "nb_vu", 0)) != 0
-        and _get_work_key(item, label)
+    work_stats = defaultdict(lambda: {
+        "ep_vu": 0,
+        "ep_res": 0,
     })
+
+    for item in items:
+        work_key = _get_work_key(item, label)
+
+        if work_key not in unique_work_keys:
+            continue
+
+        work_stats[work_key]["ep_vu"] += _safe_int(
+            getattr(item, "nb_ep_vu", 0)
+        )
+        work_stats[work_key]["ep_res"] += _safe_int(
+            getattr(item, "nb_ep_res", 0)
+        )
+
+    # Une œuvre est vue lorsque tous ses épisodes sont vus
+    seen_work_keys = {
+        work_key
+        for work_key, stats in work_stats.items()
+        if stats["ep_vu"] > 0
+        and stats["ep_res"] == 0
+    }
+
+    works_seen = len(seen_work_keys)
+
     works_remaining = max(0, works_total - works_seen)
     percent_e = round(100 * e_vu / e_tot, 1) if e_tot else 0.0
     percent_o = round(100 * works_seen / works_total, 1) if works_total else 0.0
@@ -125,8 +136,8 @@ def compute_type_stats(label: str, items: List[Any], avg_minutes_per_ep: int) ->
         "Écart-\ntype": f"{std_dev:.2f}",
         "Note\nmin": f"{min_note:.2f}",
         "Note\nmax": f"{max_note:.2f}",
-        "1 Épisode": round(e_tot / count, 2) if count else 0.0,
-        "1 Oeuvre": round(works_total / count, 2) if count else 0.0,
+        "1 Épisode\n%": round(1/e_tot*100, 3) if e_tot else 0.0,
+        "1 Oeuvre\n%": round(1/works_total*100, 3) if works_total else 0.0,
         "Durée /\népisode\n(min)": avg_minutes_per_ep,
         "Temps\nvu": _format_duration(e_vu * avg_minutes_per_ep),
         "Temps\nrestant": _format_duration(e_res * avg_minutes_per_ep),
@@ -339,8 +350,8 @@ class HomeWidget(QWidget):
             "Écart-\ntype",
             "Note\nmin",
             "Note\nmax",
-            "1 Épisode",
-            "1 Oeuvre",
+            "1 Épisode\n%",
+            "1 Oeuvre\n%",
             "Durée /\népisode\n(min)",
             "Temps\nvu",
             "Temps\nrestant",
@@ -375,17 +386,17 @@ class HomeWidget(QWidget):
             "Épisodes\nvus": sum(row["Épisodes\nvus"] for row in rows),
             "Épisodes\nrestants": sum(row["Épisodes\nrestants"] for row in rows),
             "Épisodes\ntotaux": sum(row["Épisodes\ntotaux"] for row in rows),
-            "%\nEpisodes": f"{round(100 * sum(row["Épisodes\nvus"] for row in rows) / sum(row["Épisodes\ntotaux"] for row in rows), 1) if sum(row["Épisodes\ntotaux"] for row in rows) else 0.0:.1f}%",
+            "%\nEpisodes": str(round(100 * sum(row['Épisodes\nvus'] for row in rows) / sum(row['Épisodes\ntotaux'] for row in rows), 1) if sum(row['Épisodes\ntotaux'] for row in rows) else 0.0) + " %",
             "Œuvres\nvues": sum(row["Œuvres\nvues"] for row in rows),
             "Œuvres\nrestantes": sum(row["Œuvres\nrestantes"] for row in rows),
             "Œuvres\ntotales": sum(row["Œuvres\ntotales"] for row in rows),
-            "%\nOeuvres": f"{round(100 * sum(row['Œuvres\nvues'] for row in rows) / sum(row['Œuvres\ntotales'] for row in rows), 1) if sum(row['Œuvres\ntotales'] for row in rows) else 0.0:.1f}%",
-            "Note\nmoy": f"{round(sum(float(row['Note\nmoy']) for row in rows) / len(rows), 2) if rows else 0.0:.2f}",
+            "%\nOeuvres": str(round(100 * sum(row['Œuvres\nvues'] for row in rows) / sum(row['Œuvres\ntotales'] for row in rows), 1) if sum(row['Œuvres\ntotales'] for row in rows) else 0.0) + " %",
+            "Note\nmoy": str(round(sum(float(row['Note\nmoy']) for row in rows) / len(rows), 2) if rows else 0.0),
             "Écart-\ntype": "-",
             "Note\nmin": "-",
             "Note\nmax": "-",
-            "1 Épisode": round(sum(row["1 Épisode"] for row in rows) / len(rows), 2) if rows else 0.0,
-            "1 Oeuvre": round(sum(row["1 Oeuvre"] for row in rows) / len(rows), 2) if rows else 0.0,
+            "1 Épisode\n%": round(sum(row["1 Épisode\n%"] for row in rows) / len(rows), 3) if rows else 0.0,
+            "1 Oeuvre\n%": round(sum(row["1 Oeuvre\n%"] for row in rows) / len(rows), 3) if rows else 0.0,
             "Durée /\népisode\n(min)": "-",
             "Temps\nvu": _format_duration(sum(row["Épisodes\nvus"] for row in rows) * 25),
             "Temps\nrestant": _format_duration(sum(row["Épisodes\nrestants"] for row in rows) * 25),
