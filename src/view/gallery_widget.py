@@ -32,27 +32,84 @@ def sanitize_filename(name: str) -> str:
     return name.strip()
 
 
-def rename_title_image(data_folder, old_title: str, new_title: str) -> bool:
-    if not old_title or new_title == old_title:
+def image_type_suffix(media_type: str | None) -> str:
+    if media_type is None:
+        return ""
+    suffix = str(media_type).strip().lower()
+    if not suffix:
+        return ""
+    return suffix
+
+
+def image_filename(title: str, media_type: str | None = None) -> str:
+    if media_type is None:
+        raise ValueError("Le type de média est obligatoire pour le nom d'image.")
+    base = sanitize_filename(title)
+    suffix = image_type_suffix(media_type)
+    if not suffix:
+        raise ValueError("Le type de média est obligatoire pour le nom d'image.")
+    return f"{base}_{suffix}"
+
+
+def rename_title_image(data_folder, old_title: str, new_title: str, media_type: str | None = None) -> bool:
+    if not old_title:
         return False
+    if media_type is None:
+        raise ValueError("Le type de média est obligatoire pour renommer une image.")
 
     try:
         data_path = Path(data_folder)
-        base_old = sanitize_filename(old_title)
-        base_new = sanitize_filename(new_title)
+        data_path.mkdir(parents=True, exist_ok=True)
         exts = ['.jpg', '.jpeg', '.png', '.webp']
+        renamed = False
+
+        old_base = sanitize_filename(old_title)
+        new_base = image_filename(new_title, media_type)
 
         for ext in exts:
-            old_path = data_path / (base_old + ext)
-            if old_path.exists():
-                new_path = data_path / (base_new + ext)
-                data_path.mkdir(parents=True, exist_ok=True)
-                old_path.rename(new_path)
-                return True
+            legacy_path = data_path / (old_base + ext)
+            if not legacy_path.exists():
+                continue
+            target_path = data_path / (new_base + ext)
+            if target_path.exists() and target_path.resolve() != legacy_path.resolve():
+                legacy_path.unlink()
+            else:
+                legacy_path.rename(target_path)
+            renamed = True
+
+        return renamed
     except Exception:
         return False
 
-    return False
+
+def migrate_existing_image(data_folder, title: str, media_type: str | None = None) -> bool:
+    if not title:
+        return False
+    if media_type is None:
+        raise ValueError("Le type de média est obligatoire pour migrer une image.")
+
+    try:
+        data_path = Path(data_folder)
+        data_path.mkdir(parents=True, exist_ok=True)
+        legacy_base = sanitize_filename(title)
+        target_base = image_filename(title, media_type)
+        exts = ['.jpg', '.jpeg', '.png', '.webp']
+        migrated = False
+
+        for ext in exts:
+            legacy_path = data_path / (legacy_base + ext)
+            if not legacy_path.exists():
+                continue
+            target_path = data_path / (target_base + ext)
+            if target_path.exists() and target_path.resolve() != legacy_path.resolve():
+                legacy_path.unlink()
+            else:
+                legacy_path.rename(target_path)
+            migrated = True
+
+        return migrated
+    except Exception:
+        return False
 
 
 class ClickableLabel(QLabel):
@@ -108,39 +165,37 @@ class GalleryWidget(QWidget):
         self._pending_items = None
         self._refresh_requested = False
 
-    def find_image(self, title: str):
-        
-        base = sanitize_filename(title)
-        
+    def find_image(self, title: str, media_type: str | None = None):
+        resolved_type = media_type or self.table_name
+        target_base = image_filename(title, resolved_type)
         for ext in (".jpg", ".jpeg", ".png", ".webp"):
-            candidate = self.data_folder / (base + ext)
+            candidate = self.data_folder / (target_base + ext)
             if candidate.exists():
                 return str(candidate)
-        
         return None
 
-    def download_image_for(self, title: str, url: str):
+    def download_image_for(self, title: str, url: str, media_type: str | None = None):
         try:
-            base = sanitize_filename(title)
+            base = image_filename(title, media_type or self.table_name)
             _, ext = os.path.splitext(url)
-            if ext in (".jpg", ".jpeg", ".png", ".webp"):
+            if ext.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
                 ext = ".jpg"
-            
+
             self.data_folder.mkdir(
                 parents=True,
                 exist_ok=True,
             )
-            
+
             target = self.data_folder / (base + ext)
             urlretrieve(url, str(target))
-            
+
             return str(target)
-        
+
         except Exception as e :
             print(e)
             return None
 
-    def download_image_from_clipboard(self, title: str, image=None):
+    def download_image_from_clipboard(self, title: str, image=None, media_type: str | None = None):
         if image is None:
             clipboard = QApplication.clipboard()
             image = clipboard.image()
@@ -149,7 +204,7 @@ class GalleryWidget(QWidget):
             return None
 
         try:
-            base = sanitize_filename(title)
+            base = image_filename(title, media_type or self.table_name)
             self.data_folder.mkdir(parents=True, exist_ok=True)
             target = self.data_folder / f"{base}.jpg"
             if image.save(str(target), "jpg"):
@@ -188,7 +243,10 @@ class GalleryWidget(QWidget):
     def request_and_download(self, data):
         source = self.choose_image_source()
         if source == "clipboard":
-            result = self.download_image_from_clipboard(getattr(data, "titre", ""))
+            result = self.download_image_from_clipboard(
+                getattr(data, "titre", ""),
+                media_type=self.table_name,
+            )
             if result:
                 self.refresh()
             else:
@@ -202,12 +260,11 @@ class GalleryWidget(QWidget):
         if source == "url":
             clipboard = QApplication.clipboard()
             url = clipboard.text()
-            
-            
 
             result = self.download_image_for(
                 getattr(data, "titre", ""),
                 url,
+                media_type=self.table_name,
             )
 
             if result:
@@ -342,7 +399,7 @@ class GalleryWidget(QWidget):
             self.IMAGE_HEIGHT
         )
 
-        image_path = self.find_image(title)
+        image_path = self.find_image(title, self.table_name)
 
         if image_path:
 
@@ -511,7 +568,7 @@ class GalleryWidget(QWidget):
         content_layout.setSpacing(16)
 
         title = getattr(data, "titre", "")
-        image_path = self.find_image(title)
+        image_path = self.find_image(title, self.table_name)
 
         header = QFrame()
         header.setObjectName("detailHeader")

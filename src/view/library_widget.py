@@ -1056,13 +1056,21 @@ class LibraryWidgets(QWidget):
 
     def _image_path(self, work):
         title = str(work.titre)
-        base = self._sanitize_filename(title)
-        for extension in (".jpg", ".jpeg", ".png", ".webp"):
-            candidate = self.data_folder / (base + extension)
-            if candidate.exists():
-                return str(candidate)
+        media_type = self._media_type_for_work(work)
+        if media_type:
+            base = self._sanitize_filename(title) + f"_{media_type}"
+            for extension in (".jpg", ".jpeg", ".png", ".webp"):
+                candidate = self.data_folder / (base + extension)
+                if candidate.exists():
+                    return str(candidate)
         notice = work.notice
         return str(self._cover_path(notice)) if self._cover_path(notice) else None
+
+    def _media_type_for_work(self, work):
+        for room_type, (_, table_name, model_cls) in self.rooms.items():
+            if isinstance(work, model_cls):
+                return table_name
+        return None
 
     @staticmethod
     def _sanitize_filename(name):

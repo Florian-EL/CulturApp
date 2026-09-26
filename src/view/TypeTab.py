@@ -641,7 +641,7 @@ class TypeWidget(QWidget):
 
             cal_data = self.calculate(data)
             new_title = getattr(cal_data, "titre", old_title)
-            rename_title_image(self.data_folder, old_title, new_title)
+            rename_title_image(self.data_folder, old_title, new_title, self.table_name)
 
             self.db.update(self.table_name, cal_data)
             self.refresh()
