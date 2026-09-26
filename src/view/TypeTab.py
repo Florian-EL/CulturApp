@@ -389,7 +389,6 @@ class TypeWidget(QWidget):
             "nb_ep_res",
             "note",
             "nb_vu",
-            "nb_saison",
             "ep_act",
             "ep_deb",
             "priorite",
@@ -491,20 +490,6 @@ class TypeWidget(QWidget):
             data.nb_ep_vu = data.ep_act
 
         data.etat = "FINI" if data.note != "" else "EN COURS"
-
-        if self.table_name == "serie":
-            nb_saison = 0
-            data.nb_ep_tot = 0
-            data.nb_ep_vu = 0
-            for col in self.columns:
-                if col.endswith("_tot") and col.lower() != "nb_ep_tot":
-                    if getattr(data, col.lower(), 0) != "":
-                        nb_saison += 1
-                        data.nb_ep_tot += int(getattr(data, col.lower(), 0))
-                if col.endswith("_vu") and col.lower() not in ["nb_ep_vu", "nb_vu"]:
-                    if getattr(data, col.lower(), 0) != "":
-                        data.nb_ep_vu += int(getattr(data, col.lower(), 0))
-            data.nb_saison = nb_saison
 
         if self.table_name in ["film", "serie_film"]:
             if data.updated == "PAS SORTI":
