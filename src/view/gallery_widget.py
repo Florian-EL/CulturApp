@@ -51,7 +51,7 @@ def image_filename(title: str, media_type: str | None = None) -> str:
     return f"{base}_{suffix}"
 
 
-def rename_title_image(data_folder, old_title: str, new_title: str, media_type: str | None = None) -> bool:
+def rename_title_image(data_folder, old_title, new_title, media_type):
     if not old_title:
         return False
     if media_type is None:
@@ -740,7 +740,7 @@ class GalleryWidget(QWidget):
 
             cal_data = self.parent.calculate(data)
             new_title = getattr(cal_data, 'titre', old_title)
-            rename_title_image(self.data_folder, old_title, new_title)
+            rename_title_image(self.data_folder, old_title, new_title, self.table_name)
 
             self.db.update(self.table_name, cal_data)
             self.refresh()
