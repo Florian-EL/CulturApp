@@ -501,9 +501,9 @@ class TypeWidget(QWidget):
                 data.nb_ep_vu = 0
                 data.nb_vu = 0
             elif data.etat == "FINI":
-                data.nb_ep_vu = len(str(data.annee_vu).split(","))
-                data.nb_ep_tot = data.nb_ep_vu
-                data.nb_vu = data.nb_ep_vu
+                data.nb_ep_vu = 1
+                data.nb_ep_tot = 1
+                data.nb_vu = len(str(data.annee_vu).split(","))
 
         data.nb_ep_res = int(data.nb_ep_tot) - int(data.nb_ep_vu)
 
