@@ -488,10 +488,11 @@ class TypeWidget(QWidget):
 
         if self.table_name == "manga":
             data.nb_ep_vu = data.ep_act
+        
 
-        data.etat = "FINI" if data.note != "" else "EN COURS"
+        data.etat = "FINI" if data.note != "" and data.note is not None else "EN COURS"
 
-        if self.table_name in ["film", "serie_film"]:
+        if self.table_name in ["film"]:
             if data.updated == "PAS SORTI":
                 data.nb_ep_tot = 0
                 data.nb_vu = 0
