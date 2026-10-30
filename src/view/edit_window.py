@@ -24,6 +24,11 @@ class EditData(QDialog):
         self.inputs = {}
         self.content_type = content_type
         self.field_options = field_options or {}
+        self.null_fields = {
+            col
+            for col in self.columns
+            if values is not None and col in values and values[col] is None
+        }
 
         field_count = len(self.columns)
         max_rows = 10
@@ -55,7 +60,8 @@ class EditData(QDialog):
                 
                 # Set current value if provided
                 if values is not None:
-                    current_value = str(values.get(col, ""))
+                    value = values.get(col, "")
+                    current_value = "" if value is None else str(value)
                     index = input_field.findText(current_value)
                     if index >= 0:
                         input_field.setCurrentIndex(index)
@@ -69,7 +75,8 @@ class EditData(QDialog):
                 input_field.setFixedWidth(128)
                 input_field.setFixedHeight(28)
                 if values is not None:
-                    input_field.setText(str(values.get(col, "")))
+                    value = values.get(col, "")
+                    input_field.setText("" if value is None else str(value))
             
             self.inputs[col] = input_field
 
@@ -117,13 +124,16 @@ class EditData(QDialog):
         casted_data = {}
         for col, value in raw_data.items():
             field_type = self.field_types.get(col.lower(), str)
-            casted_data[col] = self._cast_value(value, field_type)
+            if col in self.null_fields and value == "":
+                casted_data[col] = None
+            else:
+                casted_data[col] = self._cast_value(value, field_type)
         return casted_data
 
     @staticmethod
     def _cast_value(value, field_type):
         if value is None:
-            return ""
+            return None
         if field_type is str:
             return str(value)
         if field_type is int:
