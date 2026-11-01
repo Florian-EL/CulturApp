@@ -72,8 +72,6 @@ class DatabaseManager:
         
         for config in self.TABLE_MAPPING.values():
             self.sync_table(config["table"], config["class"])
-
-        self._citation_table_ready = False
     
     def close(self):
         self.conn.close()
@@ -111,9 +109,7 @@ class DatabaseManager:
         self.conn.commit()
 
     def ensure_citation_table(self):
-        if not self._citation_table_ready:
-            self.sync_table("citation", Citation)
-            self._citation_table_ready = True
+        self.sync_table("citation", Citation)
     
     def model_to_row(self, obj):
         if not is_dataclass(obj):

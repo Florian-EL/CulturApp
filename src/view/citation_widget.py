@@ -243,9 +243,10 @@ class CitationWidget(QWidget):
         field_types = {field.name: field.type for field in Citation.__dataclass_fields__.values()}
         dialog = EditData(self.columns, values=values, field_types=field_types, parent=self)
         if dialog.exec_() != QDialog.Accepted:
-            updated = dialog.get_casted_data()
-            for column in self.columns:
-                setattr(citation, column.lower(), updated.get(column, ""))
+            return
+        updated = dialog.get_casted_data()
+        for column in self.columns:
+            setattr(citation, column.lower(), updated.get(column, ""))
         self.db.update("citation", citation)
         self.refresh()
 
