@@ -67,7 +67,7 @@ def rename_title_image(data_folder, old_title, new_title, media_type):
         new_base = image_filename(new_title, media_type)
 
         for ext in exts:
-            legacy_path = data_path / (old_base + ext)
+            legacy_path = data_path / (old_base + f"_{media_type}" + ext)
             if not legacy_path.exists():
                 continue
             target_path = data_path / (new_base + ext)
