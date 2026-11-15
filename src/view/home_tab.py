@@ -1,24 +1,35 @@
-from collections import defaultdict
 import json
+import random
 import statistics
+from collections import defaultdict
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from PySide6.QtCore import Qt, QRect
-from PySide6.QtGui import QColor, QPainter
+from PySide6.QtCore import QRect, Qt
+from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
 from PySide6.QtWidgets import (
-    QVBoxLayout, QLabel, QGroupBox, QWidget,
-    QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView,
-    QProgressBar, QSizePolicy, QFrame, QGridLayout
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QProgressBar,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
+from src.models.citation import Citation
 from src.models.film import Film
 from src.models.manga import Manga
 from src.models.roman import Roman
 from src.models.serie import Serie
 from src.models.wattpad import Wattpad
 from src.models.webtoon import Webtoon
-
+from src.view.gallery_widget import image_filename, sanitize_filename
 
 MODEL_CLASSES = {
     "film": Film,
@@ -320,8 +331,133 @@ class HomeWidget(QWidget):
     def __init__(self, db):
         super().__init__()
         self.db = db
+        self.data_folder = Path(db.db_folder)
         self.setLayout(QVBoxLayout())
         self.refresh()
+
+    def _find_citation_work(self, oeuvre, items_by_type):
+        normalized_oeuvre = str(oeuvre or "").strip().casefold()
+        if not normalized_oeuvre:
+            return None
+
+        for _, table_name, _, _ in load_type_config():
+            for item in items_by_type[table_name]:
+                titles = (
+                    getattr(item, "titre", ""),
+                    getattr(item, "titre_principal", ""),
+                    getattr(item, "titre_secondaire", ""),
+                )
+                if any(
+                    str(title or "").strip().casefold() == normalized_oeuvre
+                    for title in titles
+                ):
+                    return table_name, item
+        return None
+
+    def _citation_image_path(self, oeuvre, media_type=None):
+        if not oeuvre:
+            return None
+
+        extensions = (".jpg", ".jpeg", ".png", ".webp")
+        media_types = [table_name for _, table_name, _, _ in load_type_config()]
+        if media_type in media_types:
+            media_types.remove(media_type)
+            media_types.insert(0, media_type)
+        for table_name in media_types:
+            base = image_filename(oeuvre, table_name)
+            for extension in extensions:
+                path = self.data_folder / f"{base}{extension}"
+                if path.is_file():
+                    return path
+
+        base = sanitize_filename(oeuvre)
+        for extension in extensions:
+            path = self.data_folder / f"{base}{extension}"
+            if path.is_file():
+                return path
+        return None
+
+    def _create_citation_panel(self, items_by_type):
+        citations = [
+            citation
+            for citation in self.db.get("citation", Citation)
+            if str(citation.citation or "").strip()
+        ]
+        panel = QFrame()
+        panel.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d30;
+                border-radius: 10px;
+                border: 1px solid #3f3f46;
+            }
+            QLabel {
+                color: white;
+                background: transparent;
+                border: none;
+            }
+        """)
+        layout = QHBoxLayout(panel)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(24)
+
+        if not citations:
+            empty_label = QLabel("Aucune citation disponible")
+            empty_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(empty_label, 1)
+            panel.setMinimumHeight(140)
+            return panel
+
+        citation = random.choice(citations)
+        work = self._find_citation_work(citation.oeuvre, items_by_type)
+        image_title = (
+            getattr(work[1], "titre", "") if work is not None else ""
+        ) or citation.oeuvre
+        image_path = self._citation_image_path(
+            image_title,
+            work[0] if work is not None else None,
+        )
+        if image_path:
+            image_label = QLabel()
+            image_label.setAlignment(Qt.AlignCenter)
+            pixmap = QPixmap(str(image_path))
+            if not pixmap.isNull():
+                image_label.setPixmap(
+                    pixmap.scaled(180, 240, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                )
+                layout.addWidget(image_label, 0, Qt.AlignVCenter)
+
+        text_layout = QVBoxLayout()
+        text_layout.setSpacing(10)
+
+        quote_label = QLabel(citation.citation.strip())
+        quote_label.setAlignment(Qt.AlignCenter)
+        quote_label.setWordWrap(True)
+        quote_label.setFont(QFont(quote_label.font().family(), 20, QFont.Bold))
+        text_layout.addWidget(quote_label, 1)
+
+        if work is not None:
+            work_label = QLabel(citation.oeuvre.strip())
+            work_label.setAlignment(Qt.AlignCenter)
+            work_label.setFont(QFont(work_label.font().family(), 12))
+            text_layout.addWidget(work_label)
+
+            character = str(citation.personnage or "").strip()
+            if character:
+                character_label = QLabel(character)
+                character_label.setAlignment(Qt.AlignCenter)
+                character_label.setFont(QFont(character_label.font().family(), 11))
+                text_layout.addWidget(character_label)
+        else:
+            artist = str(citation.artiste or "").strip()
+            if artist:
+                artist_label = QLabel(artist)
+                artist_label.setAlignment(Qt.AlignCenter)
+                artist_label.setFont(QFont(artist_label.font().family(), 11))
+                text_layout.addWidget(artist_label)
+
+        layout.addLayout(text_layout, 1)
+        # panel.setMinimumHeight(280)
+        return panel
 
     def refresh(self):
         if self.layout() is not None:
@@ -377,8 +513,10 @@ class HomeWidget(QWidget):
 
         rows = []
         type_config = load_type_config()
+        items_by_type = {}
         for label, table_name, model_cls, avg_minutes in type_config:
             items = self.db.get(table_name, model_cls)
+            items_by_type[table_name] = items
             rows.append(compute_type_stats(label, items, avg_minutes))
 
         totals = {
@@ -416,6 +554,8 @@ class HomeWidget(QWidget):
                 summary_table.setItem(row_idx, col_idx, item)
         summary_table.setMinimumHeight(350)
         content_layout.addWidget(summary_table)
+        
+        content_layout.addWidget(self._create_citation_panel(items_by_type))
 
         progress_group = QGroupBox("Répartition E et O réalisés")
         progress_layout = QGridLayout(progress_group)

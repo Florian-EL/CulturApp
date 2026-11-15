@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.models.citation import Citation
 from src.view.add_window import AddData
 from src.view.edit_window import EditData
 from src.view.gallery_widget import GalleryWidget, rename_title_image
@@ -500,9 +501,6 @@ class TypeWidget(QWidget):
         
 
         data.etat = "FINI" if data.note != "" and data.note is not None else "EN COURS"
-        
-        if data.updated == "FINI" :
-            data.updated = "SORTI"
 
         if self.table_name in ["film"]:
             if data.updated == "PAS SORTI":
@@ -519,9 +517,6 @@ class TypeWidget(QWidget):
                 data.nb_vu = len(str(data.annee_vu).split(","))
 
         data.nb_ep_res = int(data.nb_ep_tot) - int(data.nb_ep_vu)
-
-        if self.table_name == "serie_film":
-            self._sync_title_fields(data)
 
         if data.nb_ep_tot == 0:
             data.updated = "PAS SORTI"
@@ -655,13 +650,44 @@ class TypeWidget(QWidget):
                 continue
 
             old_title = getattr(related_data, "titre", "")
+            old_related_title_principal = getattr(
+                related_data, "titre_principal", ""
+            )
             for field, value in changed_values.items():
                 setattr(related_data, field, value)
             self._sync_title_fields(related_data)
             self.db.update(self.table_name, related_data)
-            synchronized.append((old_title, getattr(related_data, "titre", "")))
+            synchronized.append(
+                (
+                    old_title,
+                    getattr(related_data, "titre", ""),
+                    old_related_title_principal,
+                    getattr(related_data, "titre_principal", ""),
+                )
+            )
 
         return synchronized
+
+    def _update_citation_titles(self, title_changes):
+        title_mapping = {}
+        for old_title, new_title, old_principal, new_principal in title_changes:
+            if old_title and old_title != new_title:
+                title_mapping[old_title] = new_title
+            if (
+                old_principal
+                and old_principal != old_title
+                and old_principal != new_principal
+            ):
+                title_mapping[old_principal] = new_principal
+
+        if not title_mapping:
+            return
+
+        for citation in self.db.get("citation", Citation):
+            new_title = title_mapping.get(citation.oeuvre)
+            if new_title is not None:
+                citation.oeuvre = new_title
+                self.db.update("citation", citation)
 
     def save_edited_data(self, data, updated_values):
         old_title = getattr(data, "titre", "")
@@ -684,11 +710,22 @@ class TypeWidget(QWidget):
         )
 
         new_title = getattr(cal_data, "titre", old_title)
+        title_changes = [
+            (
+                old_title,
+                new_title,
+                old_title_principal,
+                getattr(cal_data, "titre_principal", ""),
+            ),
+            *synchronized_titles,
+        ]
+        self._update_citation_titles(title_changes)
+
         if old_title != new_title:
             rename_title_image(
                 self.data_folder, old_title, new_title, self.table_name
             )
-        for previous_title, synchronized_title in synchronized_titles:
+        for previous_title, synchronized_title, *_ in synchronized_titles:
             if previous_title != synchronized_title:
                 rename_title_image(
                     self.data_folder,

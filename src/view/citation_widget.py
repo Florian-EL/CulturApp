@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 from src.models.citation import Citation
 from src.view.add_window import AddData
 from src.view.edit_window import EditData
-from src.view.gallery_widget import sanitize_filename
+from src.view.gallery_widget import image_filename, sanitize_filename
 
 
 class CitationWidget(QWidget):
@@ -162,10 +162,42 @@ class CitationWidget(QWidget):
         self.refresh()
 
     def _image_path(self, oeuvre):
+        for media in self.db.TABLE_MAPPING.values():
+            base = image_filename(oeuvre, media["table"])
+            for extension in (".jpg", ".jpeg", ".png", ".webp"):
+                path = self.data_folder / (base + extension)
+                if path.exists():
+                    return path
+
         base = sanitize_filename(oeuvre)
         for extension in (".jpg", ".jpeg", ".png", ".webp"):
             path = self.data_folder / (base + extension)
             if path.exists():
+                return path
+
+        if not self.data_folder.is_dir():
+            return None
+
+        prefix = base + " - "
+        media_suffixes = tuple(
+            f"_{media['table']}".casefold()
+            for media in self.db.TABLE_MAPPING.values()
+        )
+        image_paths = sorted(
+            self.data_folder.iterdir(), key=lambda item: item.name.casefold()
+        )
+        for path in image_paths:
+            if not path.is_file() or path.suffix.lower() not in {
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".webp",
+            }:
+                continue
+            stem = path.name[:-len(path.suffix)]
+            if not stem.casefold().startswith(prefix.casefold()):
+                continue
+            if any(stem.casefold().endswith(suffix) for suffix in media_suffixes):
                 return path
         return None
 
