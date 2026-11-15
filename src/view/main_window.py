@@ -194,6 +194,7 @@ class CulturApp(QWidget) :
                 self.data_folder,
                 initial_sort_rules=self.initial_sorts.get(spec["table_name"], []),
                 field_options=field_options,
+                title_sync_fields=self.config.get("titre_sync", []),
                 parent=self
             )
             self._type_widgets[key] = widget

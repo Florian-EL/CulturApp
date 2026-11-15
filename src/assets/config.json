@@ -121,21 +121,7 @@
     "film": [
       {
         "field": "updated",
-        "order": "desc"
-      },
-      {
-        "field": "etat",
         "order": "asc"
-      },
-      {
-        "field": "titre",
-        "order": "asc"
-      }
-    ],
-    "serie_film": [
-      {
-        "field": "updated",
-        "order": "desc"
       },
       {
         "field": "etat",
@@ -285,6 +271,13 @@
     "Espionnage", "Art", "Action", "Policier", "Art martiaux", "Post apocalyptique"],
     "VO": ["FRA", "ENG", "JAP", "CHI", "KOR", "NVG", "THAI", "IND"],
     "Cinema": ["OUI", "NON"],
-    "Updated": ["EN COURS", "FINI", "PAS SORTI"]
-  }
+    "Updated": ["EN COURS", "SORTI", "PAS SORTI"]
+  },
+  "titre_sync" : [
+    "titre_principal",
+    "Type",
+    "Genre",
+    "VO",
+    "Updated"
+  ]
 }

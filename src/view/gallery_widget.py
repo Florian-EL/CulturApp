@@ -733,17 +733,7 @@ class GalleryWidget(QWidget):
 
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()
-            old_title = getattr(data, 'titre', '')
-
-            for col in self.columns:
-                setattr(data, col.lower(), updated_values.get(col, getattr(data, col.lower(), "")))
-
-            cal_data = self.parent.calculate(data)
-            new_title = getattr(cal_data, 'titre', old_title)
-            rename_title_image(self.data_folder, old_title, new_title, self.table_name)
-
-            self.db.update(self.table_name, cal_data)
-            self.refresh()
+            self.parent.save_edited_data(data, updated_values)
 
             if detail_dialog is not None and detail_scroll is not None:
                 self.refresh_detail_content(detail_dialog, data, detail_scroll)
@@ -777,4 +767,3 @@ class GalleryWidget(QWidget):
 
         self.refresh_detail_content(dialog, data, scroll)
         dialog.exec_()
-

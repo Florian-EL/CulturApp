@@ -39,7 +39,9 @@ class TypeWidget(QWidget):
         data_folder,
         initial_sort_rules=None,
         field_options=None,
-        parent=None
+        parent=None,
+        *,
+        title_sync_fields=None,
     ):
         super().__init__()
 
@@ -51,6 +53,13 @@ class TypeWidget(QWidget):
         self.data_folder = data_folder
         self.initial_sort_rules = initial_sort_rules or []
         self.field_options = field_options or {}
+        self.title_sync_fields = tuple(
+            dict.fromkeys(
+                str(field).strip().lower()
+                for field in (title_sync_fields or [])
+                if str(field).strip()
+            )
+        )
         self.parent_widget = parent
 
         layout = QHBoxLayout(self)
@@ -491,6 +500,9 @@ class TypeWidget(QWidget):
         
 
         data.etat = "FINI" if data.note != "" and data.note is not None else "EN COURS"
+        
+        if data.updated == "FINI" :
+            data.updated = "SORTI"
 
         if self.table_name in ["film"]:
             if data.updated == "PAS SORTI":
@@ -618,6 +630,75 @@ class TypeWidget(QWidget):
         self.db.add(self.table_name, cal_data)
         self.refresh()
 
+    def uniformise_title_princ(self, data, old_title_principal, old_values):
+        title_key = self._normalize_search_value(old_title_principal)
+        if not title_key:
+            return []
+
+        changed_values = {
+            field: getattr(data, field)
+            for field in self.title_sync_fields
+            if hasattr(data, field)
+            and old_values.get(field) != getattr(data, field)
+        }
+        if not changed_values:
+            return []
+
+        synchronized = []
+        for related_data in self.db.get(self.table_name, self.model_cls):
+            if related_data.id == data.id:
+                continue
+            related_title = self._normalize_search_value(
+                getattr(related_data, "titre_principal", "")
+            )
+            if related_title != title_key:
+                continue
+
+            old_title = getattr(related_data, "titre", "")
+            for field, value in changed_values.items():
+                setattr(related_data, field, value)
+            self._sync_title_fields(related_data)
+            self.db.update(self.table_name, related_data)
+            synchronized.append((old_title, getattr(related_data, "titre", "")))
+
+        return synchronized
+
+    def save_edited_data(self, data, updated_values):
+        old_title = getattr(data, "titre", "")
+        old_title_principal = getattr(data, "titre_principal", "")
+        old_values = {
+            field: getattr(data, field, None)
+            for field in self.title_sync_fields
+        }
+
+        for col in self.columns:
+            setattr(
+                data,
+                col.lower(),
+                updated_values.get(col, getattr(data, col.lower(), "")),
+            )
+
+        cal_data = self.calculate(data)
+        synchronized_titles = self.uniformise_title_princ(
+            cal_data, old_title_principal, old_values
+        )
+
+        new_title = getattr(cal_data, "titre", old_title)
+        if old_title != new_title:
+            rename_title_image(
+                self.data_folder, old_title, new_title, self.table_name
+            )
+        for previous_title, synchronized_title in synchronized_titles:
+            if previous_title != synchronized_title:
+                rename_title_image(
+                    self.data_folder,
+                    previous_title,
+                    synchronized_title,
+                    self.table_name,
+                )
+
+        self.refresh()
+
     def open_edit_window(self, data):
         values = {col: getattr(data, col.lower(), "") for col in self.columns}
         field_types = {field.name: field.type for field in fields(self.model_cls)}
@@ -631,21 +712,7 @@ class TypeWidget(QWidget):
         )
         if dialog.exec_() == QDialog.Accepted:
             updated_values = dialog.get_casted_data()
-            old_title = getattr(data, "titre", "")
-
-            for col in self.columns:
-                setattr(
-                    data,
-                    col.lower(),
-                    updated_values.get(col, getattr(data, col.lower(), "")),
-                )
-
-            cal_data = self.calculate(data)
-            new_title = getattr(cal_data, "titre", old_title)
-            rename_title_image(self.data_folder, old_title, new_title, self.table_name)
-
-            self.db.update(self.table_name, cal_data)
-            self.refresh()
+            self.save_edited_data(data, updated_values)
 
     def get_addable_columns(self):
         return [col for col in self.columns if col not in self.hidden_columns]
