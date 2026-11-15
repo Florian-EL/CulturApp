@@ -422,7 +422,7 @@ class HomeWidget(QWidget):
             pixmap = QPixmap(str(image_path))
             if not pixmap.isNull():
                 image_label.setPixmap(
-                    pixmap.scaled(180, 240, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                    pixmap.scaled(180, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 )
                 layout.addWidget(image_label, 0, Qt.AlignVCenter)
 
@@ -552,7 +552,6 @@ class HomeWidget(QWidget):
                 item = QTableWidgetItem(str(value))
                 item.setTextAlignment(Qt.AlignCenter)
                 summary_table.setItem(row_idx, col_idx, item)
-        summary_table.setMinimumHeight(350)
         content_layout.addWidget(summary_table)
         
         content_layout.addWidget(self._create_citation_panel(items_by_type))
