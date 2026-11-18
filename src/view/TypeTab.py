@@ -520,7 +520,7 @@ class TypeWidget(QWidget):
 
         if data.nb_ep_tot == 0:
             data.updated = "PAS SORTI"
-            data.etat = ""
+            data.etat = "A VENIR"
         elif data.nb_ep_tot > data.nb_ep_vu:
             data.etat = "EN COURS"
         elif data.nb_ep_tot == data.nb_ep_vu:
